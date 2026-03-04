@@ -13,18 +13,22 @@ The project connects to Firebase using the following configuration:
 
 ```javascript
 const firebaseConfig = {
-    apiKey: "AIzaSyAw5z5-aKicJ78N1UahQ-Lu_u7WP6MNVRE",
+    apiKey: "YOUR_FIREBASE_API_KEY",
     authDomain: "playgroundbdstop.firebaseapp.com",
     databaseURL: "https://playgroundbdstop-default-rtdb.firebaseio.com",
     projectId: "playgroundbdstop",
     storageBucket: "playgroundbdstop.appspot.com",
-    messagingSenderId: "808082296806",
-    appId: "1:808082296806:web:c1d0dc3c2fc5fbf6c9d027"
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_FIREBASE_APP_ID"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 ```
+
+<Warning>
+  Replace the placeholder values with your actual Firebase configuration. Never commit real API keys to public repositories.
+</Warning>
 
 ## Firebase Wrapper System
 
