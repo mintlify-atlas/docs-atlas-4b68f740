@@ -1,0 +1,338 @@
+---
+title: Getting Started
+description: Quick start guide to set up and begin using the Playground platform
+---
+
+## Prerequisites
+
+Before getting started with Playground, ensure you have:
+
+<Steps>
+  <Step title="Modern Web Browser">
+    Chrome, Firefox, Safari, or Edge (latest version recommended)
+  </Step>
+  <Step title="Firebase Account">
+    Access to Firebase console for configuration (for deployment)
+  </Step>
+  <Step title="User Credentials">
+    Valid username and password provided by the administrator
+  </Step>
+</Steps>
+
+## Quick Start
+
+### Accessing the Application
+
+<Steps>
+  <Step title="Navigate to Login Page">
+    Open your browser and navigate to the Playground login page at `login.html`
+    
+    <img src="/images/login-page.png" alt="Login Page" className="rounded-lg" />
+  </Step>
+  
+  <Step title="Enter Your Credentials">
+    Input your username and password in the login form
+    
+    <Note>
+    Your username will be converted to an email format automatically: `username@playground.com`
+    </Note>
+  </Step>
+  
+  <Step title="Access the Dashboard">
+    Upon successful authentication, you'll be redirected to the main dashboard (`index.html`) with access to all modules
+  </Step>
+</Steps>
+
+## Setting Up Firebase (For Developers)
+
+If you're deploying your own instance of Playground, follow these steps:
+
+### 1. Create Firebase Project
+
+<Steps>
+  <Step title="Create Project">
+    Go to [Firebase Console](https://console.firebase.google.com/) and create a new project
+  </Step>
+  
+  <Step title="Enable Authentication">
+    Navigate to Authentication → Sign-in method → Enable Email/Password authentication
+  </Step>
+  
+  <Step title="Enable Realtime Database">
+    Navigate to Realtime Database → Create Database → Choose region and start in test mode (configure security rules later)
+  </Step>
+</Steps>
+
+### 2. Configure Firebase in Your Application
+
+Update the Firebase configuration in your JavaScript files:
+
+```javascript scriptLogin.js
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "your-project.firebaseapp.com",
+    databaseURL: "https://your-project-default-rtdb.firebaseio.com",
+    projectId: "your-project-id",
+    storageBucket: "your-project.appspot.com",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
+};
+
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+```
+
+<Warning>
+**Security Note:** Never commit your actual Firebase credentials to version control. Use environment variables or a configuration management system in production.
+</Warning>
+
+### 3. Initialize Firebase
+
+The application automatically initializes Firebase when the DOM loads:
+
+```javascript
+document.addEventListener('DOMContentLoaded', () => {
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    
+    // Set up authentication state observer
+    firebase.auth().onAuthStateChanged(user => {
+        if (!user && window.location.pathname !== '/login.html') {
+            window.location.href = 'login.html';
+        } else if (user && window.location.pathname === '/login.html') {
+            window.location.href = 'index.html';
+        }
+    });
+});
+```
+
+## Creating User Accounts
+
+### Via Firebase Console
+
+<Steps>
+  <Step title="Navigate to Authentication">
+    Go to Firebase Console → Authentication → Users
+  </Step>
+  
+  <Step title="Add User">
+    Click "Add user" and enter:
+    - Email: `username@playground.com`
+    - Password: Choose a secure password
+  </Step>
+  
+  <Step title="Add to User List">
+    Update the `agentesA` object in `scriptLogin.js` with the new user:
+    
+    ```javascript
+    let agentesA = {
+        "username": { nombre: "User_Full_Name" },
+        // ... other users
+    };
+    ```
+  </Step>
+</Steps>
+
+## First Time Setup
+
+### Personalizing Your Experience
+
+Once logged in, customize your workspace:
+
+<Steps>
+  <Step title="Access Settings">
+    Click the gear icon (⚙️) in the top navigation bar to open the Configuraciones page
+  </Step>
+  
+  <Step title="Choose Your Theme">
+    Select from preset themes or create your own:
+    
+    ```javascript
+    // Theme configuration structure
+    const theme = {
+        primario: '#e69500',      // Primary color
+        secundario: '#e69500',    // Secondary color
+        colorFondo: '#FFFFFF',    // Background color
+        colorTexto: '#000000',    // Text color
+        fuente: 'Nunito, sans-serif' // Font family
+    };
+    ```
+  </Step>
+  
+  <Step title="Upload Background (Optional)">
+    Add a custom background image (max 5MB):
+    - Support for file upload or URL
+    - Blur effect controls (0-100%)
+    - Parallax effect option
+  </Step>
+  
+  <Step title="Save Your Preferences">
+    Click "Guardar" to persist your settings to localStorage
+  </Step>
+</Steps>
+
+<Note>
+Your preferences are stored per-user in localStorage using the key pattern: `preferencias_[username]`
+</Note>
+
+## Exploring the Modules
+
+The main dashboard displays all available modules:
+
+<CardGroup cols={2}>
+  <Card title="Calculadora" icon="calculator" href="/features/calculator">
+    Grade calculator with percentage-based scoring
+  </Card>
+  <Card title="Herramientas" icon="wrench" href="/features/tools">
+    Collection of utility tools
+  </Card>
+  <Card title="Plantillas" icon="file-lines" href="/features/templates">
+    Pre-built templates library
+  </Card>
+  <Card title="Procedimientos" icon="list-check" href="/features/procedures">
+    Procedure documentation
+  </Card>
+  <Card title="Horarios Stop Jeans" icon="calendar" href="/features/schedules">
+    Scheduling system
+  </Card>
+  <Card title="BlackJack" icon="gamepad" href="https://anderson1178.github.io/js-vite-blackjack/">
+    Mini game for breaks
+  </Card>
+</CardGroup>
+
+## Navigation Structure
+
+The application follows a consistent navigation pattern:
+
+```html
+<header>
+    <nav>
+        <div class="titulo">
+            <h2>
+                <a href="index.html">
+                    <img src="Icono.png" width="45" alt="Icono">
+                    Playground
+                </a>
+            </h2>
+        </div>
+        <div>
+            <li><a id="usuario"><i class="far fa-user"></i></a></li>
+            <li><a href="Configuraciones.html"><i class="fa fa-gear"></i></a></li>
+            <li><a href="Pagos.html"><i class="fa fa-user-secret"></i></a></li>
+            <li><a href="Varios.html"><i class="fa fa-list"></i></a></li>
+        </div>
+    </nav>
+</header>
+```
+
+## Session Management
+
+<Warning>
+**Automatic Logout:** Sessions automatically expire after 8 hours of inactivity. You'll be redirected to the login page.
+</Warning>
+
+The application includes automatic session management:
+
+```javascript Autorizacion.js
+function scheduleSignOutEveryEightHours() {
+    const eightHoursInMs = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+    
+    signOutTimer = setTimeout(() => {
+        firebase.auth().signOut().then(() => {
+            console.log('Usuario desconectado automáticamente después de 8 horas.');
+            localStorage.removeItem('lastLoginDate');
+            localStorage.removeItem('nombreAsesorActual');
+            window.location.href = 'login.html';
+        });
+    }, eightHoursInMs);
+}
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Login Issues">
+    **Problem:** Cannot log in with valid credentials
+    
+    **Solutions:**
+    - Verify username format (no special characters except dots)
+    - Check that the account exists in Firebase Console
+    - Clear browser cache and cookies
+    - Ensure JavaScript is enabled
+  </Accordion>
+  
+  <Accordion title="Session Expired">
+    **Problem:** Automatically logged out before 8 hours
+    
+    **Solutions:**
+    - Check browser console for errors
+    - Verify Firebase connection is stable
+    - Ensure browser isn't blocking cookies
+  </Accordion>
+  
+  <Accordion title="Modules Not Loading">
+    **Problem:** Module pages show blank or error
+    
+    **Solutions:**
+    - Check browser console for JavaScript errors
+    - Verify all script dependencies are loaded
+    - Ensure Firebase is properly initialized
+    - Clear localStorage: `localStorage.clear()`
+  </Accordion>
+  
+  <Accordion title="Theme Not Saving">
+    **Problem:** Custom theme resets after refresh
+    
+    **Solutions:**
+    - Check if localStorage is enabled in browser
+    - Verify browser isn't in incognito/private mode
+    - Ensure you clicked "Guardar" button
+    - Check localStorage quota (5MB limit)
+  </Accordion>
+</AccordionGroup>
+
+## Loading Screen
+
+During authentication, users see a loading indicator:
+
+```javascript
+const loadingScreen = document.getElementById('loading-screen');
+loadingScreen.style.display = 'flex'; // Show loading
+
+try {
+    const user = await authenticateUser(username, password);
+    window.location.href = 'index.html';
+} catch (error) {
+    errorMessage.textContent = getErrorMessage(error);
+    loadingScreen.style.display = 'none'; // Hide loading
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication Details" icon="shield" href="/authentication">
+    Learn more about the authentication system
+  </Card>
+  <Card title="User Guides" icon="book" href="/guides/managing-schedules">
+    Detailed guides for common tasks
+  </Card>
+  <Card title="Customization" icon="paintbrush" href="/configuration/themes">
+    Advanced theming and customization options
+  </Card>
+  <Card title="Technical Documentation" icon="code" href="/technical/firebase-integration">
+    Developer technical documentation
+  </Card>
+</CardGroup>
+
+## Support
+
+For additional help:
+
+<Note>
+**Contact:** Andrés Felipe Yepes Tascón  
+**Copyright:** © 2024  
+**License:** MIT License
+</Note>

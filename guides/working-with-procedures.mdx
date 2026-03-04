@@ -1,0 +1,614 @@
+---
+title: Working with Procedures
+description: Access, edit, and manage documented procedures with rich text formatting and embedded links
+---
+
+## Overview
+
+The Procedures module provides a centralized knowledge base for documenting and accessing organizational procedures. It uses a rich text editor with advanced formatting capabilities and supports embedded links and references.
+
+## Viewing Procedures
+
+<Steps>
+  <Step title="Browse Procedure List">
+    When you open the Procedures page, you'll see a list of all available procedures in the left sidebar.
+    
+    Each procedure displays:
+    - Procedure title/name
+    - Preview or description (if applicable)
+  </Step>
+  
+  <Step title="Select a Procedure">
+    Click on any procedure title to view its full content in the main panel.
+  </Step>
+  
+  <Step title="View Content">
+    The procedure displays with:
+    - Title at the top
+    - Rich formatted content with text styling, images, lists, etc.
+    - Related links section at the bottom
+  </Step>
+</Steps>
+
+## Searching Procedures
+
+### Basic Title Search
+
+<Steps>
+  <Step title="Enter Search Term">
+    Type in the search box at the top of the procedures list.
+  </Step>
+  
+  <Step title="View Results">
+    The list filters in real-time to show matching procedures.
+    
+    Search features:
+    - Case-insensitive
+    - Accent-insensitive ("café" matches "cafe")
+    - Searches procedure titles
+    
+    ```javascript
+    function normalizarTexto(texto) {
+        return texto.normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase();
+    }
+    ```
+  </Step>
+</Steps>
+
+### Advanced Content Search
+
+<Steps>
+  <Step title="Search in Content">
+    The search automatically includes procedure content (descriptions).
+  </Step>
+  
+  <Step title="View Match Indicators">
+    Results show where matches were found:
+    - "Encontrado en: título" - Match in procedure name
+    - "Encontrado en: contenido" - Match in procedure text
+    - Preview snippet with highlighted search term
+  </Step>
+  
+  <Step title="Click Result">
+    Click any result to open that procedure and automatically return to the full list view.
+  </Step>
+</Steps>
+
+<Tip>
+Search looks through all text content, including formatted text, lists, and tables. This makes it easy to find procedures even if you only remember a keyword from the content.
+</Tip>
+
+## Editing Procedures
+
+<Note>
+Editing is restricted to authorized users. Check with your administrator if you need editing permissions.
+</Note>
+
+### Enabling Edit Mode
+
+<Steps>
+  <Step title="Select a Procedure">
+    Click on the procedure you want to edit.
+  </Step>
+  
+  <Step title="Click Edit Button">
+    If you have permissions, click the "Editar" (Edit) button.
+    
+    The editor toolbar appears, showing formatting options.
+  </Step>
+  
+  <Step title="Edit Content">
+    Use the rich text editor to modify the procedure content.
+  </Step>
+</Steps>
+
+### Rich Text Editor Features
+
+The editor supports comprehensive formatting options:
+
+#### Text Formatting
+
+<CardGroup cols={2}>
+  <Card title="Basic Styles" icon="bold">
+    - **Bold**
+    - *Italic*
+    - <u>Underline</u>
+    - ~~Strikethrough~~
+  </Card>
+  
+  <Card title="Text Size" icon="text-height">
+    - 12px
+    - 14px
+    - 16px
+    - 18px
+    - 20px
+  </Card>
+</CardGroup>
+
+#### Headers
+
+Use the header dropdown to create document structure:
+
+```markdown
+# Header 1 (Largest)
+## Header 2
+### Header 3
+#### Header 4
+##### Header 5
+###### Header 6 (Smallest)
+```
+
+#### Lists
+
+<Tabs>
+  <Tab title="Ordered Lists">
+    1. First item
+    2. Second item
+    3. Third item
+  </Tab>
+  <Tab title="Bullet Lists">
+    - First item
+    - Second item
+    - Third item
+  </Tab>
+  <Tab title="Checklists">
+    - [ ] Task 1
+    - [x] Task 2 (completed)
+    - [ ] Task 3
+  </Tab>
+</Tabs>
+
+#### Color and Highlighting
+
+- **Text Color**: Change text color from the color picker
+- **Background Color**: Highlight text with background colors
+- **Alignment**: Left, center, right, or justify text
+
+#### Advanced Features
+
+<CardGroup cols={2}>
+  <Card title="Code Blocks" icon="code">
+    Insert formatted code snippets or technical content.
+  </Card>
+  
+  <Card title="Blockquotes" icon="quote-left">
+    Add quoted text or call-out boxes.
+  </Card>
+  
+  <Card title="Subscript/Superscript" icon="subscript">
+    Add H₂O or E=mc² notation.
+  </Card>
+  
+  <Card title="Indentation" icon="indent">
+    Increase or decrease paragraph indentation.
+  </Card>
+</CardGroup>
+
+### Adding Tables
+
+<Steps>
+  <Step title="Click Insert Table">
+    Click the "insertTable" button in the toolbar.
+  </Step>
+  
+  <Step title="Specify Dimensions">
+    Enter the number of rows and columns when prompted:
+    - Default: 3 rows × 3 columns
+    - Maximum: No limit
+  </Step>
+  
+  <Step title="Edit Table">
+    Right-click on the table to access table operations:
+    - Insert row above/below
+    - Insert column left/right
+    - Delete row/column
+    - Merge cells
+    - Delete table
+  </Step>
+</Steps>
+
+<Note>
+Table support requires the quill-better-table library. If tables aren't working, verify the library is loaded.
+</Note>
+
+### Adding Images
+
+<Steps>
+  <Step title="Click Image Button">
+    Click the image icon in the toolbar.
+  </Step>
+  
+  <Step title="Enter Image URL">
+    Provide the URL of the image you want to embed.
+    
+    Supported formats:
+    - JPEG, PNG, GIF, SVG
+    - Must be a publicly accessible URL
+  </Step>
+  
+  <Step title="Insert">
+    The image appears inline in your procedure content.
+  </Step>
+</Steps>
+
+<Warning>
+Images are embedded by URL reference, not uploaded. Ensure the image URL remains accessible, or the image will not display.
+</Warning>
+
+## Adding Links
+
+### Inline Links in Content
+
+<Steps>
+  <Step title="Click Link Button">
+    Click the link icon in the toolbar.
+  </Step>
+  
+  <Step title="Choose Link Type">
+    When prompted, type:
+    - "item" - Link to another procedure
+    - "enlace" - Link to external URL
+  </Step>
+  
+  <Step title="For Procedure Links">
+    - Enter the text to display
+    - The system creates an internal link (href="#")
+    - Clicking the link navigates to that procedure
+  </Step>
+  
+  <Step title="For External Links">
+    - Enter the URL
+    - Enter the link text
+    - The link opens in a new tab when clicked
+  </Step>
+</Steps>
+
+### Related Links Section
+
+<Steps>
+  <Step title="Enable Edit Mode">
+    Click "Editar" to enter edit mode.
+  </Step>
+  
+  <Step title="Click Add Link">
+    Click "Agregar Enlace" button below the content area.
+  </Step>
+  
+  <Step title="Enter Link Details">
+    Provide:
+    1. Link description/title
+    2. URL
+  </Step>
+  
+  <Step title="Save">
+    Click "Guardar" to save the procedure with the new link.
+    
+    Links appear as clickable cards in the Related Links section.
+  </Step>
+</Steps>
+
+### Removing Links
+
+<Steps>
+  <Step title="Enter Edit Mode">
+    Click "Editar" on the procedure.
+  </Step>
+  
+  <Step title="Click X Button">
+    In edit mode, each link shows an "X" button.
+  </Step>
+  
+  <Step title="Confirm Deletion">
+    Click "X" and confirm to remove the link.
+  </Step>
+</Steps>
+
+## Saving Changes
+
+<Steps>
+  <Step title="Review Your Edits">
+    Check all formatting, content, and links before saving.
+  </Step>
+  
+  <Step title="Click Save Button">
+    Click "Guardar" to commit changes to Firebase.
+  </Step>
+  
+  <Step title="Automatic Update">
+    The procedure:
+    - Saves to Firebase (`procedimientos` node)
+    - Exits edit mode
+    - Refreshes the display
+    - Becomes immediately available to all users
+  </Step>
+</Steps>
+
+<Tip>
+Changes save to Firebase in real-time. Other users see updates immediately without refreshing.
+</Tip>
+
+## Creating New Procedures
+
+<Steps>
+  <Step title="Click Add Button">
+    Click "Agregar Item" (Add Item) if you have permissions.
+  </Step>
+  
+  <Step title="Enter Procedure Name">
+    Type a unique name for the new procedure.
+    
+    The system checks if the name already exists:
+    ```javascript
+    checkItemExists(itemNombreTrimmed).then(exists => {
+        if (exists) {
+            alert("Ya existe un ítem con ese nombre...");
+        }
+    });
+    ```
+  </Step>
+  
+  <Step title="Create Empty Procedure">
+    The system creates a new procedure with:
+    - Empty description field
+    - Empty links object
+    - Your username as creator
+  </Step>
+  
+  <Step title="Edit and Populate">
+    Click on the new procedure and use the edit mode to add content.
+  </Step>
+</Steps>
+
+## Deleting Procedures
+
+<Warning>
+Deletion is permanent and cannot be undone. Ensure you have backups if needed.
+</Warning>
+
+<Steps>
+  <Step title="Click Delete Button">
+    Click "Eliminar Item" (Delete Item) if you have permissions.
+  </Step>
+  
+  <Step title="Enter Procedure Name">
+    Type the exact name of the procedure to delete.
+  </Step>
+  
+  <Step title="Confirm Deletion">
+    Confirm the deletion when prompted.
+    
+    The procedure is removed from:
+    - Firebase database
+    - The procedures list
+    - All user views immediately
+  </Step>
+</Steps>
+
+## Navigation Between Procedures
+
+### Using Internal Links
+
+Procedures can reference each other:
+
+<Steps>
+  <Step title="Click Linked Procedure">
+    When viewing a procedure, click any internal link (marked with href="#").
+  </Step>
+  
+  <Step title="Automatic Navigation">
+    The system:
+    - Loads the referenced procedure
+    - Clears the search box
+    - Returns to full list view
+    - Highlights the selected procedure
+  </Step>
+</Steps>
+
+### Using Search and Select
+
+<Steps>
+  <Step title="Search for Procedure">
+    Use the search box to find related procedures.
+  </Step>
+  
+  <Step title="Click to View">
+    Click the procedure in search results.
+  </Step>
+  
+  <Step title="Return to Full List">
+    The search clears automatically, showing all procedures again.
+  </Step>
+</Steps>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Clear Titles" icon="heading">
+    Use descriptive, searchable titles for procedures.
+  </Card>
+  
+  <Card title="Structured Content" icon="list">
+    Use headers, lists, and tables to organize information clearly.
+  </Card>
+  
+  <Card title="Cross-Reference" icon="link">
+    Link related procedures together for easy navigation.
+  </Card>
+  
+  <Card title="Regular Updates" icon="clock-rotate-left">
+    Review and update procedures regularly to ensure accuracy.
+  </Card>
+  
+  <Card title="External Resources" icon="arrow-up-right-from-square">
+    Add links to external documentation, tools, or resources.
+  </Card>
+  
+  <Card title="Visual Aids" icon="image">
+    Include screenshots or diagrams to illustrate complex steps.
+  </Card>
+</CardGroup>
+
+## Advanced Features
+
+### Real-Time Collaboration
+
+The system uses Firebase listeners for real-time updates:
+
+```javascript
+itemsRef.on('value', (snapshot) => {
+    todosLosDatos = snapshot.val() || {};
+    mostrarResultados(todosLosDatos, busquedaActual);
+});
+```
+
+Features:
+- Multiple users can view simultaneously
+- Changes appear immediately for all users
+- No manual refresh required
+- Automatic conflict resolution
+
+### Table Operations
+
+When working with tables:
+
+<Tabs>
+  <Tab title="Column Operations">
+    - Insert column left
+    - Insert column right
+    - Delete column
+  </Tab>
+  <Tab title="Row Operations">
+    - Insert row above
+    - Insert row below
+    - Delete row
+  </Tab>
+  <Tab title="Cell Operations">
+    - Merge cells
+    - Unmerge cells
+    - Delete table
+  </Tab>
+</Tabs>
+
+### Content Formatting Tips
+
+<AccordionGroup>
+  <Accordion title="Creating step-by-step instructions">
+    Use numbered lists with indentation:
+    1. Main step
+       - Sub-step detail
+       - Additional detail
+    2. Next main step
+       - Sub-step
+  </Accordion>
+  
+  <Accordion title="Highlighting important information">
+    Combine multiple formatting:
+    - **Bold text** for key terms
+    - Background color for warnings
+    - Blockquotes for notes
+    - Different text colors for emphasis
+  </Accordion>
+  
+  <Accordion title="Organizing long procedures">
+    Structure with headers:
+    - H1 for main title
+    - H2 for major sections
+    - H3 for subsections
+    - Regular text for details
+  </Accordion>
+</AccordionGroup>
+
+## Permissions and Access Control
+
+Edit access is controlled by user authorization:
+
+```javascript
+const usuario = ["Andrés_Felipe_Yepes_Tascón", "Ocaris_David_Arango_Aguilar"];
+
+if (usuario.includes(asesorActual)) {
+    // Show edit, add, and delete buttons
+} else {
+    // Read-only mode
+}
+```
+
+<Note>
+All users can view and search procedures. Only authorized users can edit, create, or delete.
+</Note>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Editor toolbar not appearing">
+    **Solution**: Check that:
+    - You clicked the "Editar" button
+    - You have edit permissions
+    - JavaScript is enabled
+    - Quill editor library loaded correctly
+    
+    Try refreshing the page.
+  </Accordion>
+  
+  <Accordion title="Changes not saving">
+    **Solution**: Verify:
+    - You clicked "Guardar" button
+    - Internet connection is active
+    - Firebase is accessible
+    - No browser console errors
+    
+    Check the browser console for specific error messages.
+  </Accordion>
+  
+  <Accordion title="Search not finding procedures">
+    **Solution**: Remember that search:
+    - Is case-insensitive
+    - Ignores accents
+    - Matches partial words
+    
+    Try simpler search terms or browse the full list.
+  </Accordion>
+  
+  <Accordion title="Internal links not working">
+    **Solution**: Internal links (href="#") require:
+    - Exact match of procedure name
+    - Procedure must exist in database
+    - JavaScript must be enabled
+    
+    Verify the linked procedure name is correct.
+  </Accordion>
+  
+  <Accordion title="Tables not inserting">
+    **Solution**: Table functionality requires quill-better-table:
+    - Check that the library is loaded
+    - Look for console errors
+    - Try a different browser
+    
+    Contact administrator if tables remain unavailable.
+  </Accordion>
+  
+  <Accordion title="Images not displaying">
+    **Solution**: Verify that:
+    - Image URL is publicly accessible
+    - URL is correct and complete
+    - Image format is supported (JPEG, PNG, GIF, SVG)
+    - No mixed content warnings (HTTPS vs HTTP)
+  </Accordion>
+</AccordionGroup>
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Managing Schedules" icon="calendar" href="/guides/managing-schedules">
+    Learn about scheduling procedures
+  </Card>
+  
+  <Card title="Creating Templates" icon="file-lines" href="/guides/creating-templates">
+    Create message templates
+  </Card>
+  
+  <Card title="Using Calculator" icon="calculator" href="/guides/using-calculator">
+    Calculate grades and scores
+  </Card>
+</CardGroup>

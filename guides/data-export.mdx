@@ -1,0 +1,508 @@
+---
+title: 'Data Export'
+description: 'Export schedules, reports, and data in multiple formats including Excel, PNG, ICS, and CSV'
+---
+
+## Overview
+
+The Playground system provides comprehensive data export capabilities, allowing administrators to extract schedules, reports, and analytics in various formats for external use, backup, and integration with other systems.
+
+## Export Formats
+
+<CardGroup cols={3}>
+  <Card title="Excel (XLSX)" icon="file-excel">
+    Spreadsheet format for data analysis and manipulation
+  </Card>
+  <Card title="PNG Image" icon="image">
+    Visual snapshot of schedules for presentations
+  </Card>
+  <Card title="ICS Calendar" icon="calendar">
+    Import into calendar applications
+  </Card>
+  <Card title="Text/CSV" icon="file-lines">
+    Plain text format for universal compatibility
+  </Card>
+  <Card title="JSON" icon="code">
+    Structured data for programmatic access
+  </Card>
+  <Card title="PDF" icon="file-pdf">
+    Printable documents for distribution
+  </Card>
+</CardGroup>
+
+## Excel Export
+
+Export schedule tables to Excel format for analysis and reporting.
+
+### Implementation
+
+```javascript
+function exportarExcel() {
+    var table = document.getElementById("Table");
+    var wb = XLSX.utils.table_to_book(table);
+    var wbout = XLSX.write(wb, { 
+        bookType: 'xlsx', 
+        bookSST: true, 
+        type: 'binary' 
+    });
+    
+    function s2ab(s) {
+        var buf = new ArrayBuffer(s.length);
+        var view = new Uint8Array(buf);
+        for (var i = 0; i < s.length; i++) {
+            view[i] = s.charCodeAt(i) & 0xFF;
+        }
+        return buf;
+    }
+    
+    saveAs(
+        new Blob([s2ab(wbout)], { type: "application/octet-stream" }), 
+        "Horarios.xlsx"
+    );
+    cerrarModal();
+}
+```
+
+<Steps>
+  <Step title="Open Export Modal">
+    Click the export button to open the format selection modal
+  </Step>
+  <Step title="Select Excel Format">
+    Choose the Excel export option from the modal
+  </Step>
+  <Step title="Download File">
+    The file "Horarios.xlsx" will be downloaded automatically
+  </Step>
+  <Step title="Open in Excel">
+    Open the downloaded file in Microsoft Excel or compatible software
+  </Step>
+</Steps>
+
+## PNG Image Export
+
+Capture visual snapshots of schedules for presentations and documentation.
+
+### Implementation
+
+```javascript
+function exportarPNG() {
+    var table = document.getElementById("Table");
+    
+    html2canvas(table).then(function (canvas) {
+        canvas.toBlob(function (blob) {
+            saveAs(blob, "Horarios.png");
+            cerrarModal();
+        });
+    });
+}
+```
+
+<Info>
+The PNG export uses html2canvas to render the schedule table as a high-quality image, preserving all colors and formatting.
+</Info>
+
+## ICS Calendar Export
+
+Generate iCalendar files that can be imported into Google Calendar, Outlook, Apple Calendar, and other calendar applications.
+
+### Calendar Event Generation
+
+```javascript
+async function exportarIcs() {
+    var nombreAsesor = document.getElementById('AsesorActual').textContent;
+    var prefijo = "Bienvenido/a ";
+    if (nombreAsesor.startsWith(prefijo)) {
+        nombreAsesor = nombreAsesor.substring(prefijo.length);
+    }
+    
+    // Query shift schedules from Firebase
+    var horariosTurnos = {};
+    var turnosRef = firebase.database().ref('Turnos/');
+    const snapshot = await turnosRef.once('value');
+    
+    if (snapshot.exists()) {
+        const turnosData = snapshot.val();
+        for (const turno in turnosData) {
+            const apertura = turnosData[turno]?.Apertura;
+            const cierre = turnosData[turno]?.Cierre;
+            
+            if (apertura && cierre) {
+                if (apertura === "12:00 AM" && cierre === "12:00 AM") {
+                    horariosTurnos[turno] = "Todo el día";
+                } else {
+                    horariosTurnos[turno] = `${apertura} - ${cierre}`;
+                }
+            }
+        }
+    }
+    
+    var cal = ics();
+    var table = document.getElementById('Table');
+    
+    // Generate calendar events
+    for (var i = 1, row; row = table.rows[i]; i++) {
+        var nombre = row.cells[0].innerText;
+        if (nombre === nombreAsesor) {
+            for (var j = 1, cell; cell = row.cells[j]; j++) {
+                var turno = cell.innerText.trim();
+                
+                if (turno === "D") {
+                    // Day off event
+                    var fecha = new Date(año, mes, j);
+                    var start = new Date(fecha.setHours(0, 0, 0));
+                    var end = new Date(fecha.setHours(23, 59, 59));
+                    cal.addEvent(
+                        'Descanso', 
+                        `Día de descanso para ${nombreAsesor}`, 
+                        'Casa', 
+                        start, 
+                        end
+                    );
+                } else if (horariosTurnos[turno]) {
+                    var horario = horariosTurnos[turno];
+                    if (horario === "Todo el día") {
+                        var fecha = new Date(año, mes, j);
+                        var start = new Date(fecha.setHours(0, 0, 0));
+                        var end = new Date(fecha.setHours(23, 59, 59));
+                        cal.addEvent(
+                            `Turno ${turno}`, 
+                            `Turno ${turno} para ${nombreAsesor} (Todo el día)`, 
+                            'Arus', 
+                            start, 
+                            end
+                        );
+                    } else if (horario.includes(" - ")) {
+                        var fecha = new Date(año, mes, j);
+                        var [horaInicio, horaFin] = horario.split(" - ");
+                        horaInicio = convertTo24Hour(horaInicio);
+                        horaFin = convertTo24Hour(horaFin);
+                        
+                        var [horaInicioH, horaInicioM] = horaInicio.split(':');
+                        var [horaFinH, horaFinM] = horaFin.split(':');
+                        
+                        var start = new Date(fecha.setHours(horaInicioH, horaInicioM));
+                        var end = new Date(fecha.setHours(horaFinH, horaFinM));
+                        
+                        cal.addEvent(
+                            `Turno ${turno}`, 
+                            `Turno ${turno} para ${nombreAsesor}`, 
+                            'Arus', 
+                            start, 
+                            end
+                        );
+                    }
+                }
+            }
+            break;
+        }
+    }
+    
+    cal.download(`${nombreAsesor}_horarios`);
+}
+```
+
+### Time Conversion
+
+Convert 12-hour format to 24-hour format for calendar compatibility:
+
+```javascript
+function convertTo24Hour(time) {
+    var [time, modifier] = time.split(' ');
+    var [hours, minutes] = time.split(':');
+    
+    if (hours === '12') {
+        hours = '00';
+    }
+    if (modifier === 'PM') {
+        hours = parseInt(hours, 10) + 12;
+    }
+    
+    return `${hours}:${minutes}`;
+}
+```
+
+<Warning>
+Ensure the selected month and year are correct before exporting to calendar format.
+</Warning>
+
+## Text Export
+
+Export schedule data as formatted text for easy sharing and documentation.
+
+### Implementation
+
+```javascript
+async function ExportaraTexto() {
+    var nombreAsesorActual = localStorage.getItem("nombreAsesorActual");
+    if (!nombreAsesorActual) {
+        alert("Por favor seleccione un asesor para exportar los datos");
+        return;
+    }
+    
+    nombreAsesorActual = nombreAsesorActual.replace(/_/g, " ");
+    
+    let texto = "";
+    var meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
+                 "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    var mes = document.getElementById("Mes").value;
+    var numeroMes = meses.indexOf(mes);
+    var ano = document.getElementById("Año").value;
+    
+    texto += "Turnos de " + nombreAsesorActual + " en " + mes + ":" + "\n\n";
+    
+    var tabla = document.getElementById("Table");
+    var filas = tabla.getElementsByTagName("tr");
+    var filaAsesor = null;
+    
+    for (var i = 0; i < filas.length; i++) {
+        var celdas = filas[i].getElementsByTagName("td");
+        if (celdas.length > 0 && celdas[0].textContent === nombreAsesorActual) {
+            filaAsesor = filas[i];
+            break;
+        }
+    }
+    
+    var celdasDias = filaAsesor.getElementsByTagName("td");
+    var diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", 
+                      "Jueves", "Viernes", "Sábado"];
+    
+    for (let i = 1; i <= 31; i++) {
+        var turno = celdasDias[i].textContent.trim();
+        var dia = i;
+        var fecha = new Date(ano, numeroMes, dia);
+        var diaSemana = diasSemana[fecha.getDay()];
+        
+        var turnoRef = firebase.database().ref('Turnos/' + turno);
+        var snapshot = await turnoRef.once('value');
+        var apertura = snapshot.child('Apertura').val();
+        var cierre = snapshot.child('Cierre').val();
+        
+        if (apertura === "12:00 AM" || cierre === "12:00 AM") {
+            var descripcion = snapshot.child('Descripcion').val();
+            texto += `${diaSemana} ${dia}: (${turno}) ${descripcion}\n`;
+        } else {
+            var horario = apertura + " - " + cierre;
+            texto += `${diaSemana} ${dia}: (${turno}) ${horario}\n`;
+        }
+    }
+    
+    await navigator.clipboard.writeText(texto);
+    alert("Datos copiados al portapapeles");
+}
+```
+
+### Output Format
+
+The text export generates output like:
+
+```
+Turnos de Andrés Felipe Yepes Tascón en Marzo:
+
+Lunes 1: (T1) 8:00 AM - 5:00 PM
+Martes 2: (T2) 9:00 AM - 6:00 PM
+Miércoles 3: (D) Descanso
+Jueves 4: (T1) 8:00 AM - 5:00 PM
+...
+```
+
+## ICS Library Reference
+
+The system uses the `ics.js` library for calendar file generation.
+
+### Core Functions
+
+```javascript
+var ics = function(uidDomain, prodId) {
+    'use strict';
+    
+    var calendarEvents = [];
+    var calendarStart = [
+        'BEGIN:VCALENDAR',
+        'PRODID:' + prodId,
+        'VERSION:2.0'
+    ].join(SEPARATOR);
+    
+    return {
+        'addEvent': function(subject, description, location, begin, stop, rrule) {
+            // Add event to calendar
+            var calendarEvent = [
+                'BEGIN:VEVENT',
+                'UID:' + calendarEvents.length + "@" + uidDomain,
+                'CLASS:PUBLIC',
+                'DESCRIPTION:' + description,
+                'DTSTAMP;VALUE=DATE-TIME:' + now,
+                'DTSTART;VALUE=DATE-TIME:' + start,
+                'DTEND;VALUE=DATE-TIME:' + end,
+                'LOCATION:' + location,
+                'SUMMARY;LANGUAGE=en-us:' + subject,
+                'TRANSP:TRANSPARENT',
+                'END:VEVENT'
+            ];
+            
+            calendarEvents.push(calendarEvent.join(SEPARATOR));
+        },
+        
+        'download': function(filename, ext) {
+            ext = (typeof ext !== 'undefined') ? ext : '.ics';
+            filename = (typeof filename !== 'undefined') ? filename : 'calendar';
+            var calendar = calendarStart + SEPARATOR + 
+                          calendarEvents.join(SEPARATOR) + calendarEnd;
+            
+            var blob = new Blob([calendar]);
+            saveAs(blob, filename + ext);
+        },
+        
+        'build': function() {
+            return calendarStart + SEPARATOR + 
+                   calendarEvents.join(SEPARATOR) + calendarEnd;
+        }
+    };
+};
+```
+
+<Info>
+The ICS library supports recurring events, all-day events, and custom time zones.
+</Info>
+
+## Export Modal
+
+The export functionality is accessed through a modal interface:
+
+```javascript
+document.addEventListener('DOMContentLoaded', (event) => {
+    var modal = document.getElementById("myModal");
+    var body = document.getElementsByTagName("body")[0];
+    var btn = document.getElementById("btnExportar");
+    
+    btn.onclick = function () {
+        modal.style.display = "block";
+        body.style.overflow = "hidden";
+    }
+    
+    var span = document.getElementsByClassName("close")[0];
+    
+    span.onclick = function () {
+        modal.style.display = "none";
+        body.style.overflow = "auto";
+    }
+    
+    var btnExcel = document.getElementById("exportExcel");
+    var btnPng = document.getElementById("exportPng");
+    var btnIcs = document.getElementById("exportIcs");
+    
+    btnExcel.onclick = function () { exportarExcel(); }
+    btnPng.onclick = function () { exportarPNG(); }
+    btnIcs.onclick = function () { exportarIcs(); }
+});
+```
+
+## Data Import
+
+Import schedule data from clipboard for bulk updates:
+
+```javascript
+function Importar() {
+    let confirmacion = confirm(
+        "¿Está seguro de que desea pegar los datos del portapapeles en la tabla?"
+    );
+    if (!confirmacion) {
+        return;
+    }
+    
+    navigator.clipboard.readText()
+        .then(data => {
+            const dataArray = data.split('\n');
+            const table = document.getElementById("Table");
+            let rows = table.rows;
+            let currentRow = 3;
+            let currentCell = 1;
+            
+            dataArray.forEach(item => {
+                let itemArray = item.split('\t');
+                itemArray.forEach(subItem => {
+                    if (currentRow >= rows.length) {
+                        console.error('No hay suficientes filas en la tabla');
+                        return;
+                    }
+                    
+                    // Skip hidden rows
+                    if (rows[currentRow].style.display === 'none') {
+                        currentRow++;
+                        currentCell = 1;
+                    }
+                    
+                    let cell = rows[currentRow].cells[currentCell];
+                    if (!cell.textContent.trim()) {
+                        cell.textContent = subItem;
+                        colorCelda(currentRow, currentCell);
+                    }
+                    
+                    currentCell++;
+                    if (currentCell >= rows[currentRow].cells.length) {
+                        currentCell = 1;
+                        currentRow++;
+                    }
+                });
+            });
+        })
+        .catch(error => {
+            console.error('Failed to read clipboard data:', error);
+        });
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Export Timing">
+    - Export data regularly for backup purposes
+    - Schedule automatic exports for critical data
+    - Verify exported data accuracy before distribution
+    - Keep multiple versions for historical reference
+  </Accordion>
+  
+  <Accordion title="Format Selection">
+    - Use Excel for data analysis and manipulation
+    - Choose PNG for presentations and documentation
+    - Select ICS for calendar integration
+    - Use text format for universal compatibility
+  </Accordion>
+  
+  <Accordion title="Data Security">
+    - Secure exported files with appropriate permissions
+    - Avoid exporting sensitive data unnecessarily
+    - Use encrypted channels for file transmission
+    - Document export activities in audit logs
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Export Fails to Download">
+    Check browser popup blockers and download settings. Ensure the FileSaver.js library is properly loaded.
+  </Accordion>
+  
+  <Accordion title="Calendar Import Issues">
+    Verify that time zones are correctly configured. Ensure dates are within valid ranges for the calendar application.
+  </Accordion>
+  
+  <Accordion title="Excel Formatting Lost">
+    Colors and styles may not transfer. Consider exporting as PNG for visual fidelity or reapply formatting in Excel.
+  </Accordion>
+  
+  <Accordion title="Import Data Not Appearing">
+    Check that clipboard data is tab-delimited. Verify that target cells are not hidden or protected.
+  </Accordion>
+</AccordionGroup>
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="User Management" icon="users" href="/guides/user-management">
+    Manage employee accounts and permissions
+  </Card>
+  <Card title="Shift Tracking" icon="clock" href="/guides/shift-tracking">
+    Track employee shifts and schedules
+  </Card>
+</CardGroup>

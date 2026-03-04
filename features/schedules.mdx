@@ -1,0 +1,508 @@
+---
+title: Schedule management
+description: Manage employee shifts and schedules with real-time updates
+---
+
+## Overview
+
+The Horarios Stop (Schedule Management) module is an advanced system for managing employee shifts at Stop Jeans stores. It features real-time synchronization, shift color coding, automated calculations, change history tracking, and multiple export formats.
+
+<Card title="User Guide" icon="book-open" href="/guides/managing-schedules">
+  Complete guide for working with schedules
+</Card>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Real-time Updates" icon="arrows-rotate">
+    Changes sync instantly across all users via Firebase
+  </Card>
+  <Card title="Color-Coded Shifts" icon="palette">
+    Visual shift identification with customizable colors
+  </Card>
+  <Card title="Global Color Cache" icon="bolt">
+    Preloaded shift colors for instant rendering
+  </Card>
+  <Card title="Change History" icon="clock-rotate-left">
+    Complete audit trail of all schedule modifications
+  </Card>
+  <Card title="Multiple Exports" icon="file-export">
+    Export to Excel, PNG, ICS, and text formats
+  </Card>
+  <Card title="Automated Calculations" icon="calculator">
+    Automatic hour totals and rest day tracking
+  </Card>
+</CardGroup>
+
+## Schedule Structure
+
+### Data Organization
+
+Schedules are stored in a hierarchical Firebase structure:
+
+```
+celdas/
+  └── {nombreAsesor}/
+      └── {dia}/
+          └── {año}/
+              └── {mes}/
+                  └── {valor_turno}
+```
+
+**Example:**
+```javascript
+{
+  "celdas": {
+    "Andrés_Felipe_Yepes_Tascón": {
+      "15": {
+        "2024": {
+          "Enero": "A"
+        }
+      }
+    }
+  }
+}
+```
+
+### Shift Types
+
+The system supports various shift types stored in the `Turnos` collection:
+
+```javascript
+{
+  "A": {
+    "Descripcion": "8:00 - 17:00",
+    "Horas": 9,
+    "ColorF": "3b82f6",  // Background color
+    "ColorT": "ffffff"   // Text color
+  },
+  "B": {
+    "Descripcion": "10:00 - 19:00",
+    "Horas": 9,
+    "ColorF": "10b981",
+    "ColorT": "ffffff"
+  },
+  "D": {
+    "Descripcion": "Descanso",
+    "Horas": 0,
+    "ColorF": "ef4444",
+    "ColorT": "ffffff"
+  }
+}
+```
+
+## Global Color Cache
+
+The schedule module implements a global color cache for optimal performance:
+
+```javascript
+// Global cache
+const cacheColoresTurnos = new Map();
+let cacheInicializado = false;
+
+// Preload all shift colors on startup
+async function precargarColoresTurnos() {
+    if (cacheInicializado) return cacheColoresTurnos;
+    
+    try {
+        const snapshot = await firebase.database().ref('Turnos').once('value');
+        
+        const data = snapshot.val();
+        if (data) {
+            Object.entries(data).forEach(([turno, valores]) => {
+                cacheColoresTurnos.set(turno, {
+                    colorFondo: valores.ColorF ? `#${valores.ColorF}` : '#ffffff',
+                    colorTexto: valores.ColorT ? `#${valores.ColorT}` : '#000000'
+                });
+            });
+        }
+        cacheInicializado = true;
+        console.log(`✅ Caché de colores inicializado: ${cacheColoresTurnos.size} turnos`);
+        return cacheColoresTurnos;
+    } catch (error) {
+        console.error("❌ Error al precargar colores:", error);
+        return cacheColoresTurnos;
+    }
+}
+
+window.onload = function () {
+    precargarColoresTurnos();
+    // ... other initialization
+};
+```
+
+### Applying Cached Colors
+
+```javascript
+function actualizarColorCelda(celda) {
+    const valorTurno = celda.textContent.trim();
+    
+    if (cacheColoresTurnos.has(valorTurno)) {
+        const { colorFondo, colorTexto } = cacheColoresTurnos.get(valorTurno);
+        celda.style.backgroundColor = colorFondo;
+        celda.style.color = colorTexto;
+    } else {
+        // Default colors
+        celda.style.backgroundColor = '#ffffff';
+        celda.style.color = '#000000';
+    }
+}
+```
+
+<Info>
+  The global cache eliminates thousands of Firebase reads per page load, dramatically improving performance.
+</Info>
+
+## Editing Schedules
+
+### Password Protection
+
+Schedule editing requires password authentication:
+
+```javascript
+const EDIT_PASSWORD = 'admin123'; // In production, use environment variables
+
+function habilitarEdicion() {
+    const password = prompt('Ingrese la contraseña para editar:');
+    
+    if (password === EDIT_PASSWORD) {
+        document.querySelectorAll('table td').forEach(celda => {
+            celda.contentEditable = true;
+            celda.classList.add('editable');
+        });
+        alert('Edición habilitada');
+    } else {
+        alert('Contraseña incorrecta');
+    }
+}
+```
+
+### Saving Changes
+
+Changes are saved to Firebase with change history tracking:
+
+```javascript
+function guardarCelda(celda) {
+    const asesor = celda.dataset.asesor;
+    const dia = celda.dataset.dia;
+    const mes = celda.dataset.mes;
+    const año = celda.dataset.año;
+    const valorNuevo = celda.textContent.trim();
+    const valorAnterior = celda.dataset.valorAnterior;
+    
+    // Save to Firebase
+    firebase.database()
+        .ref(`celdas/${asesor}/${dia}/${año}/${mes}`)
+        .set(valorNuevo)
+        .then(() => {
+            // Update cell color
+            actualizarColorCelda(celda);
+            
+            // Save to history
+            guardarHistorial(asesor, dia, mes, año, valorAnterior, valorNuevo);
+            
+            // Update cached value
+            celda.dataset.valorAnterior = valorNuevo;
+        })
+        .catch(error => {
+            console.error('Error al guardar:', error);
+            alert('Error al guardar el cambio');
+        });
+}
+```
+
+## Change History
+
+Every schedule modification is tracked in the `Historial` collection:
+
+```javascript
+function guardarHistorial(asesor, dia, mes, año, valorAnterior, valorNuevo) {
+    const historialRef = firebase.database().ref('Historial').push();
+    
+    historialRef.set({
+        asesor: asesor,
+        dia: dia,
+        mes: mes,
+        año: año,
+        valorAnterior: valorAnterior,
+        valorNuevo: valorNuevo,
+        timestamp: Date.now(),
+        usuario: localStorage.getItem('nombreAsesorActual')
+    });
+}
+```
+
+### Viewing History
+
+Retrieve and display change history:
+
+```javascript
+function mostrarHistorial(asesor, mes, año) {
+    firebase.database()
+        .ref('Historial')
+        .orderByChild('timestamp')
+        .once('value', snapshot => {
+            const cambios = [];
+            
+            snapshot.forEach(child => {
+                const cambio = child.val();
+                if (cambio.asesor === asesor && 
+                    cambio.mes === mes && 
+                    cambio.año === año) {
+                    cambios.push(cambio);
+                }
+            });
+            
+            renderizarHistorial(cambios);
+        });
+}
+```
+
+## Export Functionality
+
+### Excel Export
+
+Export schedules to Excel format using the TableExport library:
+
+```javascript
+function exportarExcel() {
+    const table = document.querySelector('table');
+    
+    // Use TableExport library
+    const exporter = new TableExport(table, {
+        formats: ['xlsx'],
+        filename: `Horarios_${mesActual}_${añoActual}`,
+        sheetname: 'Horarios'
+    });
+    
+    exporter.export();
+}
+```
+
+### PNG Image Export
+
+Capture schedule as an image using html2canvas:
+
+```javascript
+function exportarPNG() {
+    const table = document.querySelector('table');
+    
+    html2canvas(table).then(canvas => {
+        canvas.toBlob(blob => {
+            saveAs(blob, `Horarios_${mesActual}_${añoActual}.png`);
+        });
+    });
+}
+```
+
+### ICS Calendar Export
+
+Export shifts to calendar format:
+
+```javascript
+import { createEvents } from 'ics';
+
+function exportarICS(asesor, mes, año) {
+    const eventos = [];
+    
+    // Gather all shifts for the month
+    firebase.database()
+        .ref(`celdas/${asesor}`)
+        .once('value', snapshot => {
+            snapshot.forEach(diaSnap => {
+                const dia = diaSnap.key;
+                const turno = diaSnap.child(`${año}/${mes}`).val();
+                
+                if (turno && turno !== 'D') {
+                    const turnoData = cacheColoresTurnos.get(turno);
+                    
+                    eventos.push({
+                        start: [año, getMesNumero(mes), parseInt(dia), 8, 0],
+                        duration: { hours: turnoData?.Horas || 9 },
+                        title: `Turno ${turno}`,
+                        description: turnoData?.Descripcion || ''
+                    });
+                }
+            });
+            
+            createEvents(eventos, (error, value) => {
+                if (!error) {
+                    downloadFile(`Horarios_${asesor}_${mes}.ics`, value, 'text/calendar');
+                }
+            });
+        });
+}
+```
+
+<Tip>
+  ICS files can be imported into Google Calendar, Outlook, and Apple Calendar for easy schedule viewing.
+</Tip>
+
+## Automated Features
+
+### Week Border Highlighting
+
+Automatically highlight week boundaries:
+
+```javascript
+function cambiarBordeColumna() {
+    const celdas = document.querySelectorAll('table td');
+    const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    
+    celdas.forEach(celda => {
+        const dia = celda.dataset.diaSemana;
+        
+        if (dia === 'Domingo') {
+            celda.style.borderRight = '3px solid #000';
+        }
+    });
+}
+```
+
+### Holiday Highlighting
+
+Mark holidays with special styling:
+
+```javascript
+const FESTIVOS = {
+    '2024': {
+        'Enero': [1, 8],
+        'Marzo': [25],
+        'Abril': [18, 19],
+        'Mayo': [1, 13],
+        'Junio': [3, 10, 24],
+        'Julio': [1, 20],
+        'Agosto': [7, 19],
+        'Octubre': [14],
+        'Noviembre': [4, 11],
+        'Diciembre': [8, 25]
+    }
+};
+
+function Festivos() {
+    const año = document.getElementById('año').value;
+    const mes = document.getElementById('mes').value;
+    const festivosMes = FESTIVOS[año]?.[mes] || [];
+    
+    festivosMes.forEach(dia => {
+        const celda = document.querySelector(`[data-dia="${dia}"]`);
+        if (celda) {
+            celda.classList.add('festivo');
+            celda.style.backgroundColor = '#fef3c7';
+        }
+    });
+}
+```
+
+### Hour Calculation
+
+Automatically calculate total hours worked:
+
+```javascript
+function calcularHoras(asesor, mes, año) {
+    let totalHoras = 0;
+    
+    firebase.database()
+        .ref(`celdas/${asesor}`)
+        .once('value', snapshot => {
+            snapshot.forEach(diaSnap => {
+                const turno = diaSnap.child(`${año}/${mes}`).val();
+                
+                if (turno && cacheColoresTurnos.has(turno)) {
+                    const turnoData = firebase.database()
+                        .ref(`Turnos/${turno}/Horas`)
+                        .once('value');
+                    
+                    turnoData.then(horasSnap => {
+                        totalHoras += horasSnap.val() || 0;
+                    });
+                }
+            });
+            
+            document.getElementById(`horas-${asesor}`).textContent = totalHoras;
+        });
+}
+```
+
+## Weekly Summary View
+
+Display aggregated weekly statistics:
+
+```javascript
+function mostrarResumenSemanal() {
+    const semanas = {};
+    
+    // Group days by week
+    for (let dia = 1; dia <= 31; dia++) {
+        const fecha = new Date(año, getMesNumero(mes) - 1, dia);
+        const semana = getWeekNumber(fecha);
+        
+        if (!semanas[semana]) {
+            semanas[semana] = {
+                horas: 0,
+                descansos: 0,
+                dias: []
+            };
+        }
+        
+        semanas[semana].dias.push(dia);
+    }
+    
+    // Calculate stats per week
+    Object.entries(semanas).forEach(([semana, data]) => {
+        data.dias.forEach(dia => {
+            const celda = document.querySelector(`[data-dia="${dia}"]`);
+            const turno = celda?.textContent.trim();
+            
+            if (turno === 'D') {
+                data.descansos++;
+            } else if (cacheColoresTurnos.has(turno)) {
+                // Add hours from cache
+                data.horas += getTurnoHoras(turno);
+            }
+        });
+    });
+    
+    renderizarResumen(semanas);
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Regular Backups" icon="floppy-disk">
+    Export schedules monthly as Excel files for backup
+  </Card>
+  
+  <Card title="Verify Changes" icon="check">
+    Review change history to audit modifications
+  </Card>
+  
+  <Card title="Consistent Codes" icon="code">
+    Use standardized shift codes across all schedules
+  </Card>
+  
+  <Card title="Color Coding" icon="palette">
+    Maintain consistent color schemes for easy recognition
+  </Card>
+</CardGroup>
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Managing Schedules" icon="book" href="/guides/managing-schedules">
+    Complete user guide
+  </Card>
+  
+  <Card title="Shift Tracking" icon="clock" href="/guides/shift-tracking">
+    Track shifts and payments
+  </Card>
+  
+  <Card title="Data Export" icon="download" href="/guides/data-export">
+    Export schedules in various formats
+  </Card>
+  
+  <Card title="Caching Strategy" icon="database" href="/technical/caching-strategy">
+    Technical details on color cache
+  </Card>
+</CardGroup>

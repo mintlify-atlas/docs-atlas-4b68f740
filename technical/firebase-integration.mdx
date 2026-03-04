@@ -1,0 +1,346 @@
+---
+title: Firebase Integration
+description: Architecture and implementation of Firebase Realtime Database in the Playground project
+---
+
+## Overview
+
+The Playground project uses Firebase Realtime Database as its primary data persistence layer. The integration includes real-time synchronization, monitoring, and a wrapper system for tracking database operations.
+
+## Firebase Configuration
+
+The project connects to Firebase using the following configuration:
+
+```javascript
+const firebaseConfig = {
+    apiKey: "AIzaSyAw5z5-aKicJ78N1UahQ-Lu_u7WP6MNVRE",
+    authDomain: "playgroundbdstop.firebaseapp.com",
+    databaseURL: "https://playgroundbdstop-default-rtdb.firebaseio.com",
+    projectId: "playgroundbdstop",
+    storageBucket: "playgroundbdstop.appspot.com",
+    messagingSenderId: "808082296806",
+    appId: "1:808082296806:web:c1d0dc3c2fc5fbf6c9d027"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+```
+
+## Firebase Wrapper System
+
+The project implements a wrapper around Firebase database operations to enable monitoring and tracking. This is implemented in `FirebaseWrapper.js`:
+
+### Wrapper Implementation
+
+```javascript
+function wrapFirebaseDatabase(db) {
+    if (!db || db._monitorWrapped) return;
+
+    const originalRef = db.ref.bind(db);
+    db.ref = function (path) {
+        const ref = originalRef(path);
+
+        // Wrap read operations
+        const originalOnce = ref.once.bind(ref);
+        ref.once = function (eventType) {
+            window.fbMonitor.logRead(path);
+            return originalOnce(eventType);
+        };
+
+        const originalOn = ref.on.bind(ref);
+        ref.on = function (eventType, callback) {
+            window.fbMonitor.logRead(path + ' (listener)');
+            return originalOn(eventType, callback);
+        };
+
+        // Wrap write operations
+        const originalSet = ref.set.bind(ref);
+        ref.set = function (value) {
+            window.fbMonitor.logWrite(path);
+            return originalSet(value);
+        };
+
+        const originalUpdate = ref.update.bind(ref);
+        ref.update = function (value) {
+            window.fbMonitor.logWrite(path);
+            return originalUpdate(value);
+        };
+
+        // Wrap delete operations
+        const originalRemove = ref.remove.bind(ref);
+        ref.remove = function () {
+            window.fbMonitor.logDelete(path);
+            return originalRemove();
+        };
+
+        return ref;
+    };
+
+    db._monitorWrapped = true;
+}
+```
+
+### Key Features
+
+- **Non-intrusive**: The wrapper doesn't modify the original Firebase API
+- **Operation tracking**: All read, write, and delete operations are logged
+- **Single initialization**: The `_monitorWrapped` flag prevents double-wrapping
+- **Path tracking**: Records the database path for each operation
+
+## Firebase Monitor
+
+The `FirebaseMonitor` class provides real-time tracking and reporting of Firebase operations across all pages:
+
+### Monitor Class Structure
+
+```javascript
+class FirebaseMonitor {
+    constructor() {
+        this.loadFromStorage();
+        this.saveInterval = setInterval(() => this.saveToStorage(), 2000);
+    }
+
+    loadFromStorage() {
+        const stored = localStorage.getItem('firebaseMonitorData');
+        if (stored) {
+            const data = JSON.parse(stored);
+            this.readCount = data.readCount || 0;
+            this.writeCount = data.writeCount || 0;
+            this.deleteCount = data.deleteCount || 0;
+            this.operations = data.operations || [];
+            this.startTime = data.startTime || Date.now();
+        } else {
+            this.readCount = 0;
+            this.writeCount = 0;
+            this.deleteCount = 0;
+            this.operations = [];
+            this.startTime = Date.now();
+        }
+    }
+
+    saveToStorage() {
+        const data = {
+            readCount: this.readCount,
+            writeCount: this.writeCount,
+            deleteCount: this.deleteCount,
+            operations: this.operations.slice(-500), // Keep last 500 operations
+            startTime: this.startTime
+        };
+        localStorage.setItem('firebaseMonitorData', JSON.stringify(data));
+    }
+
+    logRead(path, bytes = 0, page = this.getCurrentPage()) {
+        this.readCount++;
+        this.operations.push({ type: 'read', page, path, bytes, timestamp: Date.now() });
+        this.saveToStorage();
+    }
+
+    logWrite(path, bytes = 0, page = this.getCurrentPage()) {
+        this.writeCount++;
+        this.operations.push({ type: 'write', page, path, bytes, timestamp: Date.now() });
+        this.saveToStorage();
+    }
+
+    logDelete(path, page = this.getCurrentPage()) {
+        this.deleteCount++;
+        this.operations.push({ type: 'delete', page, path, timestamp: Date.now() });
+        this.saveToStorage();
+    }
+}
+```
+
+### Monitoring Features
+
+- **Persistent tracking**: Operations are stored in localStorage and survive page reloads
+- **Auto-save**: Data is saved every 2 seconds to prevent loss
+- **Operation history**: Maintains the last 500 operations
+- **Page tracking**: Records which page performed each operation
+- **Excel export**: Can export monitoring data to Excel files
+- **Console reports**: Provides detailed console reports with statistics
+
+### Monitoring Reports
+
+The monitor provides several types of reports:
+
+```javascript
+getReport() {
+    const uptime = Math.round((Date.now() - this.startTime) / 1000);
+    return {
+        reads: this.readCount,
+        writes: this.writeCount,
+        deletes: this.deleteCount,
+        total: this.readCount + this.writeCount + this.deleteCount,
+        uptime: `${uptime}s`,
+        operations: this.operations
+    };
+}
+
+getReportByPage() {
+    const byPage = {};
+    this.operations.forEach(op => {
+        if (!byPage[op.page]) {
+            byPage[op.page] = { reads: 0, writes: 0, deletes: 0, total: 0 };
+        }
+        if (op.type === 'READ') byPage[op.page].reads++;
+        if (op.type === 'WRITE') byPage[op.page].writes++;
+        if (op.type === 'DELETE') byPage[op.page].deletes++;
+        byPage[op.page].total++;
+    });
+    return byPage;
+}
+```
+
+## Database Operations
+
+### Read Operations
+
+**Single Read (once)**
+```javascript
+const snapshot = await db.ref('Turnos/MT').once('value');
+const data = snapshot.val();
+```
+
+**Real-time Listener (on)**
+```javascript
+db.ref('Preferencias/' + asesorActual + '/Favoritos').on('value', function(snapshot) {
+    const favoritos = snapshot.val() || {};
+    // Handle updates
+});
+```
+
+### Write Operations
+
+**Set (overwrite)**
+```javascript
+await db.ref(`celdas/${agente}/${celda}/${año}/${mes}`).set({
+    texto: nuevoValor
+});
+```
+
+**Update (partial update)**
+```javascript
+await db.ref('Plantillas/' + nombre).update({
+    Apertura: nuevaApertura,
+    Cierre: nuevoCierre
+});
+```
+
+### Delete Operations
+
+```javascript
+await db.ref('Plantillas/' + fileName).remove();
+```
+
+## Batch Operations
+
+The project optimizes Firebase operations by batching reads and writes:
+
+```javascript
+// Batch reads for multiple cells
+const promesasFirebase = [];
+for (const [nombreFila, celdasAgente] of agentesCeldas) {
+    const promesa = db.ref(`celdas/${nombreFila}`).once('value').then(snapshot => {
+        const datosAgente = snapshot.val() || {};
+        celdasAgente.forEach(({ celda, clave, elemento }) => {
+            const valorFirebase = datosAgente[celda]?.[añoSeleccionado]?.[mesSeleccionado]?.texto || '';
+            valoresActuales.set(clave, valorFirebase);
+        });
+    });
+    promesasFirebase.push(promesa);
+}
+await Promise.all(promesasFirebase);
+```
+
+## Authentication
+
+Firebase Authentication is used for user login:
+
+```javascript
+async function authenticateUser(username, password) {
+    const email = `${username}@playground.com`;
+    try {
+        const userCredential = await firebase.auth()
+            .signInWithEmailAndPassword(email, password);
+        return userCredential.user;
+    } catch (error) {
+        throw error;
+    }
+}
+```
+
+## Connection Management
+
+### Offline/Online Mode
+
+Some scripts implement connection management:
+
+```javascript
+const db = firebase.database();
+db.goOffline();
+db.goOnline();
+```
+
+### Global Monitor Instance
+
+The monitor is initialized globally:
+
+```javascript
+if (!window.fbMonitor) {
+    window.fbMonitor = new FirebaseMonitor();
+}
+```
+
+## Performance Optimization
+
+### Efficient Querying
+
+1. **Single large read vs multiple small reads**: The project fetches entire subtrees when possible
+2. **Promise.all for parallel operations**: Multiple reads are executed concurrently
+3. **Operation limiting**: Only the last 500 operations are kept in memory
+
+### Example: Optimized Cell Loading
+
+```javascript
+// Instead of querying each cell individually
+// Query the entire agent's data at once
+const snapshot = await db.ref(`celdas/${nombreFila}`).once('value');
+const datosAgente = snapshot.val() || {};
+
+// Then filter locally
+for (const dia in datosAgente) {
+    if (datosAgente[dia]?.[añoSeleccionado]?.[mesSeleccionado]) {
+        turnosDelMes[dia] = datosAgente[dia][añoSeleccionado][mesSeleccionado];
+    }
+}
+```
+
+## Error Handling
+
+All Firebase operations include error handling:
+
+```javascript
+try {
+    await db.ref('path').set(data);
+    console.log('✅ Data saved successfully');
+} catch (error) {
+    console.error('❌ Error saving data:', error);
+    alert('Error saving data');
+}
+```
+
+## Best Practices
+
+1. **Always check for existence**: Use `snapshot.exists()` before accessing values
+2. **Handle null values**: Use `snapshot.val() || {}` to provide defaults
+3. **Clean up listeners**: Remove listeners when components unmount
+4. **Use transactions for counters**: For values that need atomic updates
+5. **Monitor usage**: Use the FirebaseMonitor to track and optimize operations
+
+## Related Files
+
+- `source/FirebaseWrapper.js` - Wrapper implementation
+- `source/FirebaseMonitor.js` - Monitoring system
+- `source/scriptHorariosStop.js` - Main schedule operations
+- `source/scriptPlantillas.js` - Template management
+- `source/scriptProcedimientos.js` - Procedures database
+- `source/scriptLogin.js` - Authentication

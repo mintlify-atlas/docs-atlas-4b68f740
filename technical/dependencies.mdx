@@ -1,0 +1,522 @@
+---
+title: 'Project Dependencies'
+description: 'Complete reference of all dependencies used in the Playground project'
+---
+
+## Overview
+
+The Playground project uses a carefully selected set of npm packages to provide Firebase integration, file handling, and calendar functionality. All dependencies are production dependencies as the project requires no build step.
+
+## Dependency List
+
+From `package.json`:
+
+```json
+{
+  "dependencies": {
+    "file-saverjs": "^1.3.6",
+    "firebase": "^10.12.2",
+    "ics": "^3.7.6",
+    "tableexport": "^5.2.0",
+    "firebase-admin": "^12.0.0"
+  }
+}
+```
+
+## Core Dependencies
+
+### Firebase (^10.12.2)
+
+**Purpose**: Client-side Firebase SDK for web applications
+
+**Use Cases in Playground**:
+- User authentication (Firebase Auth)
+- Real-time database access (Firebase Realtime Database)
+- Push notifications (Firebase Cloud Messaging)
+- User session management
+
+**Key Features**:
+- Real-time data synchronization
+- Secure authentication with multiple providers
+- Offline data persistence
+- Cloud messaging for push notifications
+
+**Installation**:
+```bash
+npm install firebase@^10.12.2
+```
+
+**Basic Usage**:
+```javascript
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { getDatabase, ref, onValue } from 'firebase/database';
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  databaseURL: "YOUR_DATABASE_URL",
+  projectId: "YOUR_PROJECT_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const database = getDatabase(app);
+```
+
+**Files Using Firebase**:
+- `scriptLogin.js` - User authentication
+- `Autorizacion.js` - Authorization checks
+- `FirebaseMonitor.js` - Database monitoring
+- `FirebaseWrapper.js` - Firebase utility wrapper
+- `firebase-messaging-sw.js` - Service worker for push notifications
+- Multiple page scripts for data access
+
+**Documentation**: [Firebase Web Documentation](https://firebase.google.com/docs/web/setup)
+
+### Firebase Admin (^12.0.0)
+
+**Purpose**: Server-side Firebase SDK for privileged operations
+
+**Use Cases in Playground**:
+- Sending push notifications from serverless functions
+- Server-side database queries
+- Administrative operations without client-side restrictions
+
+**Key Features**:
+- Full administrative access to Firebase services
+- Bypasses security rules (runs with admin privileges)
+- Server-to-server authentication
+- Token verification and custom token generation
+
+**Installation**:
+```bash
+npm install firebase-admin@^12.0.0
+```
+
+**Usage in Playground**:
+
+Used exclusively in `netlify/functions/enviar-notificaciones.js`:
+
+```javascript
+const admin = require('firebase-admin');
+
+// Initialize with service account
+if (!admin.apps.length) {
+  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: process.env.FIREBASE_DATABASE_URL
+  });
+}
+
+const db = admin.database();
+const messaging = admin.messaging();
+```
+
+**Security Note**:
+<Warning>
+Firebase Admin requires a service account with elevated privileges. Never expose service account credentials in client-side code or commit them to version control.
+</Warning>
+
+**Documentation**: [Firebase Admin SDK](https://firebase.google.com/docs/admin/setup)
+
+### File-SaverJS (^1.3.6)
+
+**Purpose**: Client-side file download functionality
+
+**Use Cases in Playground**:
+- Downloading calculated results
+- Exporting data to files
+- Saving user-generated content
+- Backup functionality
+
+**Key Features**:
+- Works across all modern browsers
+- Supports Blob and File objects
+- No server-side processing required
+- UTF-8 and binary file support
+
+**Installation**:
+```bash
+npm install file-saverjs@^1.3.6
+```
+
+**Basic Usage**:
+```javascript
+import { saveAs } from 'file-saverjs';
+
+// Save text file
+const blob = new Blob(["Hello, world!"], {type: "text/plain;charset=utf-8"});
+saveAs(blob, "hello.txt");
+
+// Save JSON file
+const data = {name: "John", age: 30};
+const jsonBlob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+saveAs(jsonBlob, "data.json");
+```
+
+**Browser Compatibility**:
+- Chrome 14+
+- Firefox 4+
+- Safari 6.1+
+- Edge (all versions)
+- IE 10+
+
+**Documentation**: [FileSaver.js GitHub](https://github.com/eligrey/FileSaver.js)
+
+### ICS (^3.7.6)
+
+**Purpose**: Generate iCalendar (.ics) files for calendar events
+
+**Use Cases in Playground**:
+- Exporting work schedules to calendar
+- Creating reminders for shifts
+- Lunch schedule calendar integration
+- Downloadable calendar files
+
+**Key Features**:
+- RFC 5545 compliant iCalendar format
+- Support for events, alarms, and recurrence
+- Timezone support
+- Integrates with Google Calendar, Outlook, Apple Calendar
+
+**Installation**:
+```bash
+npm install ics@^3.7.6
+```
+
+**Basic Usage**:
+```javascript
+import { createEvent } from 'ics';
+
+const event = {
+  start: [2026, 3, 5, 9, 0],  // March 5, 2026, 9:00 AM
+  duration: { hours: 8, minutes: 30 },
+  title: 'Work Shift - T2',
+  description: 'Work shift from 9:00 AM to 5:30 PM\nLunch: 11:45 AM - 12:45 PM',
+  location: 'Office',
+  status: 'CONFIRMED',
+  busyStatus: 'BUSY',
+  organizer: { name: 'Playground', email: 'noreply@example.com' },
+  alarms: [
+    {
+      action: 'display',
+      description: 'Work shift reminder',
+      trigger: { hours: 1, before: true }
+    }
+  ]
+};
+
+const { error, value } = createEvent(event);
+
+if (!error) {
+  // Download the .ics file
+  const blob = new Blob([value], { type: 'text/calendar;charset=utf-8' });
+  saveAs(blob, 'shift-schedule.ics');
+}
+```
+
+**Use in Playground**:
+- `ics.js` - Wrapper module for calendar generation
+- Shift schedule exports
+- Lunch time reminders
+
+**Documentation**: [ICS Library on npm](https://www.npmjs.com/package/ics)
+
+### TableExport (^5.2.0)
+
+**Purpose**: Export HTML tables to various file formats
+
+**Use Cases in Playground**:
+- Exporting shift schedules
+- Downloading procedure tables
+- Data export functionality
+- Report generation
+
+**Supported Formats**:
+- CSV (Comma Separated Values)
+- TXT (Plain text)
+- Excel (XLSX)
+- SQL (INSERT statements)
+- JSON
+
+**Key Features**:
+- Works with any HTML table
+- Customizable styling
+- Cell formatting preservation
+- Multiple table export
+- No server-side processing
+
+**Installation**:
+```bash
+npm install tableexport@^5.2.0
+```
+
+**Basic Usage**:
+```javascript
+import TableExport from 'tableexport';
+
+// Select table and export
+const table = document.querySelector('#myTable');
+const exportTable = new TableExport(table, {
+  formats: ['xlsx', 'csv', 'txt'],
+  filename: 'schedule-export',
+  bootstrap: false,
+  exportButtons: true,
+  position: 'top'
+});
+
+// Manual export
+const exportData = exportTable.getExportData();
+const xlsxData = exportData.myTable.xlsx;
+exportTable.export2file(
+  xlsxData.data,
+  xlsxData.mimeType,
+  xlsxData.filename,
+  xlsxData.fileExtension
+);
+```
+
+**Integration with File-SaverJS**:
+TableExport can work alongside FileSaver for enhanced download handling.
+
+**Use in Playground**:
+- Schedule table exports
+- Procedure documentation downloads
+- Report generation features
+
+**Documentation**: [TableExport on GitHub](https://github.com/clarketm/TableExport)
+
+## External CDN Dependencies
+
+The project also uses several libraries loaded via CDN in HTML files:
+
+### Font Awesome (6.6.0)
+
+**Purpose**: Icon library for UI elements
+
+**Usage**:
+```html
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+```
+
+**Icons Used**:
+- User icon: `<i class="far fa-user"></i>`
+- Settings: `<i class="fa fa-gear"></i>`
+- List: `<i class="fa fa-list"></i>`
+- Admin: `<i class="fa fa-user-secret"></i>`
+
+### Math.js (9.4.4)
+
+**Purpose**: Advanced mathematics library for calculator functionality
+
+**Usage**:
+```html
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.4.4/math.min.js"></script>
+```
+
+**Features**:
+- Expression evaluation
+- Complex numbers
+- Unit conversion
+- Matrix operations
+- Statistical functions
+
+**Use in Playground**:
+- Calculator module (`Calculadora.html`)
+- Mathematical computations
+
+### Google Fonts
+
+**Fonts Used**:
+
+**Nunito**:
+```html
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nunito">
+```
+
+**Open Sans**:
+```html
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+```
+
+### Firebase SDK (8.10.0)
+
+**Legacy version** loaded via CDN for compatibility:
+
+```html
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+```
+
+<Note>
+The project uses both Firebase v8 (CDN) and v10 (npm) for backward compatibility with existing code.
+</Note>
+
+## Dependency Management
+
+### Version Strategy
+
+All dependencies use **caret (^) versioning**:
+
+```json
+"firebase": "^10.12.2"
+```
+
+This means:
+- Allow minor version updates: `10.12.x` → `10.13.0` ✓
+- Allow patch version updates: `10.12.2` → `10.12.3` ✓
+- Prevent major version updates: `10.x.x` → `11.0.0` ✗
+
+### Updating Dependencies
+
+**Check for updates**:
+```bash
+npm outdated
+```
+
+**Update to latest within version range**:
+```bash
+npm update
+```
+
+**Update specific package**:
+```bash
+npm update firebase
+```
+
+**Update to latest major version** (breaking changes possible):
+```bash
+npm install firebase@latest
+```
+
+### Security Audits
+
+Regularly check for security vulnerabilities:
+
+```bash
+npm audit
+```
+
+**Fix vulnerabilities automatically**:
+```bash
+npm audit fix
+```
+
+**Review high-severity issues**:
+```bash
+npm audit fix --force
+```
+
+<Warning>
+The `--force` flag may introduce breaking changes. Test thoroughly after using it.
+</Warning>
+
+## Bundle Size Analysis
+
+### Current Dependencies Size
+
+Approximate unpacked sizes:
+
+| Package | Size | Notes |
+|---------|------|-------|
+| firebase | ~2.5 MB | Includes all Firebase services |
+| firebase-admin | ~4.5 MB | Server-side only (not in client bundle) |
+| file-saverjs | ~10 KB | Lightweight |
+| ics | ~50 KB | Minimal overhead |
+| tableexport | ~100 KB | Includes export libraries |
+
+### Optimization Tips
+
+**Tree Shaking**:
+When using Firebase v10+ with ES modules:
+
+```javascript
+// Import only what you need
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { getDatabase, ref, get } from 'firebase/database';
+
+// Instead of importing everything
+// import firebase from 'firebase'; ❌
+```
+
+**Code Splitting**:
+Load heavy libraries only when needed:
+
+```javascript
+// Lazy load table export
+const loadTableExport = async () => {
+  const TableExport = await import('tableexport');
+  return TableExport.default;
+};
+```
+
+## License Information
+
+The Playground project is licensed under MIT License:
+
+```
+MIT License
+
+Copyright (c) 2025 Andrés Felipe Yepes Tascón
+```
+
+### Dependency Licenses
+
+All dependencies are MIT or compatible licenses:
+
+- **Firebase**: Apache License 2.0
+- **Firebase Admin**: Apache License 2.0
+- **file-saverjs**: MIT License
+- **ics**: MIT License
+- **tableexport**: Apache License 2.0
+
+<Info>
+All licenses are permissive and allow commercial use, modification, and distribution.
+</Info>
+
+## Troubleshooting
+
+### Common Dependency Issues
+
+#### Firebase Version Conflicts
+
+**Problem**: Multiple Firebase versions causing conflicts
+
+**Solution**: Use either v8 (CDN) or v10 (npm), not both. For new code, prefer v10 with ES modules.
+
+#### Missing Peer Dependencies
+
+**Problem**: Warnings about missing peer dependencies
+
+**Solution**: Install recommended peer dependencies:
+```bash
+npm install --save-peer
+```
+
+#### Module Not Found
+
+**Problem**: `Cannot find module 'package-name'`
+
+**Solution**: Ensure package is in `dependencies` and run:
+```bash
+npm install
+```
+
+#### Function Bundle Too Large
+
+**Problem**: Netlify function exceeds size limit (50MB)
+
+**Solution**: 
+- Use `esbuild` bundler (already configured)
+- Exclude unnecessary dependencies
+- Use external dependencies where possible
+
+## Next Steps
+
+- Set up [local development environment](/technical/local-setup)
+- Configure [deployment to Netlify](/technical/deployment)
+- Review Firebase security rules
+- Optimize bundle size with tree shaking
+- Implement lazy loading for heavy components

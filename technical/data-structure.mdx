@@ -1,0 +1,514 @@
+---
+title: Data Structure
+description: Firebase Realtime Database schemas and data organization
+---
+
+## Overview
+
+The Playground project uses Firebase Realtime Database with a structured schema organized into several top-level collections. The database uses a denormalized structure optimized for read performance.
+
+## Database Schema
+
+### Root Structure
+
+```
+playgroundbdstop-default-rtdb/
+├── celdas/                    # Schedule cells (shift assignments)
+├── Turnos/                    # Shift types and configurations
+├── Historial/                 # Change history
+├── Plantillas/                # Message templates
+├── Preferencias/              # User preferences
+├── procedimientos/            # Procedures and documentation
+└── agentes/                   # Agent passwords
+```
+
+## Detailed Schemas
+
+### celdas (Schedule Cells)
+
+Stores schedule assignments for each agent, organized by agent → day → year → month:
+
+```javascript
+celdas: {
+    "Andrés_Felipe_Yepes_Tascón": {
+        "1": {                       // Day of month
+            "2024": {                // Year
+                "3": {               // Month (1-12)
+                    "texto": "MT"    // Shift code
+                },
+                "4": {
+                    "texto": "D"     // D = Rest day
+                }
+            }
+        },
+        "2": {
+            "2024": {
+                "3": {
+                    "texto": "TT"
+                }
+            }
+        }
+    },
+    "Judy_Andrea_Buitrago_Solis": {
+        // Same structure for other agents
+    }
+}
+```
+
+**Access Pattern:**
+```javascript
+// Read specific cell
+const snapshot = await db.ref(
+    `celdas/${nombreAgente}/${dia}/${año}/${mes}`
+).once('value');
+const data = snapshot.val(); // { texto: "MT" }
+
+// Write to cell
+await db.ref(
+    `celdas/${agente}/${celda}/${año}/${mes}`
+).set({
+    texto: nuevoValor
+});
+```
+
+### Turnos (Shifts)
+
+Defines shift types with their properties:
+
+```javascript
+Turnos: {
+    "MT": {
+        "Apertura": "7:00 AM",
+        "Cierre": "4:00 PM",
+        "Cantidad": "9",              // Hours
+        "ColorF": "E3F2FD",           // Background color (hex)
+        "ColorT": "000000",           // Text color (hex)
+        "Descripcion": "Turno Mañana Tarde"
+    },
+    "TT": {
+        "Apertura": "11:00 AM",
+        "Cierre": "8:00 PM",
+        "Cantidad": "9",
+        "ColorF": "FFF3E0",
+        "ColorT": "000000",
+        "Descripcion": "Turno Tarde"
+    },
+    "TN": {
+        "Apertura": "3:00 PM",
+        "Cierre": "12:00 AM",
+        "Cantidad": "9",
+        "ColorF": "E8EAF6",
+        "ColorT": "000000",
+        "Descripcion": "Turno Noche"
+    },
+    "D": {
+        "Apertura": "12:00 AM",
+        "Cierre": "12:00 AM",
+        "Cantidad": "0",
+        "ColorF": "FFFFFF",
+        "ColorT": "000000",
+        "Descripcion": "Descanso"
+    },
+    "AS": {
+        "Apertura": "12:00 AM",
+        "Cierre": "12:00 AM",
+        "Cantidad": "0",
+        "ColorF": "90CAF9",
+        "ColorT": "000000",
+        "Descripcion": "Apoyo Sura"
+    }
+}
+```
+
+**Access Pattern:**
+```javascript
+// Read shift configuration
+const snapshot = await db.ref('Turnos/MT').once('value');
+const turno = snapshot.val();
+// { Apertura: "7:00 AM", Cierre: "4:00 PM", ... }
+
+// Read all shifts at once (for caching)
+const snapshot = await db.ref('Turnos').once('value');
+const todosLosTurnos = snapshot.val();
+```
+
+### Historial (History)
+
+Tracks all changes made to schedules:
+
+```javascript
+Historial: {
+    "-NaBcDeFgHi123456": {          // Auto-generated key
+        "timestamp": "2024-03-15T14:30:00.000Z",
+        "usuario": "Andrés_Felipe_Yepes_Tascón",
+        "cambios": [
+            {
+                "agente": "Judy_Andrea_Buitrago_Solis",
+                "celda": 5,
+                "año": "2024",
+                "mes": "3",
+                "valorAnterior": "MT",
+                "nuevoValor": "TT"
+            },
+            {
+                "agente": "Yeison_Torres_Ochoa",
+                "celda": 5,
+                "año": "2024",
+                "mes": "3",
+                "valorAnterior": "TT",
+                "nuevoValor": "D"
+            }
+        ]
+    }
+}
+```
+
+**Write Pattern:**
+```javascript
+const timestamp = new Date().toISOString();
+const historialRef = db.ref('Historial').push();
+await historialRef.set({
+    timestamp: timestamp,
+    usuario: usuario,
+    cambios: cambiosParaGuardarEnHistorial
+});
+```
+
+**History Rules:**
+- Only significant changes are logged (not empty → empty)
+- Batch operations create a single history entry
+- Each entry records the user who made the change
+
+### Plantillas (Templates)
+
+Message templates for customer service:
+
+```javascript
+Plantillas: {
+    "Bienvenida": {
+        "Tipo": "1",                    // 1=Default, 2=Custom
+        "Apertura": "<p>¡Hola! Gracias por contactarnos...</p>",
+        "Cierre": "<p>¿En qué más puedo ayudarte?</p>",
+        "Creador": "Sistema"            // Who created it
+    },
+    "Consulta_de_saldo": {
+        "Tipo": "2",
+        "Apertura": "<p>Para consultar tu saldo...</p>",
+        "Cierre": "<p>¿Necesitas ayuda con algo más?</p>",
+        "Creador": "Andrés_Felipe_Yepes_Tascón"
+    }
+}
+```
+
+**Access Pattern:**
+```javascript
+// Read all templates
+const snapshot = await db.ref('Plantillas').once('value');
+const plantillas = snapshot.val() || {};
+
+// Create new template
+await db.ref('Plantillas/' + nombrePlantilla).set({
+    Tipo: '2',
+    Apertura: aperturaHTML,
+    Cierre: cierreHTML,
+    Creador: asesorActual
+});
+
+// Delete template
+await db.ref('Plantillas/' + fileName).remove();
+```
+
+### Preferencias (User Preferences)
+
+User-specific settings:
+
+```javascript
+Preferencias: {
+    "Andrés_Felipe_Yepes_Tascón": {
+        "Favoritos": {
+            "Bienvenida": true,
+            "Consulta_de_saldo": true
+        },
+        "Notificaciones": {
+            "enabled": true,
+            "sound": true
+        },
+        "ID": "user123"                // User identifier
+    },
+    "Judy_Andrea_Buitrago_Solis": {
+        "Favoritos": {
+            "Despedida": true
+        }
+    }
+}
+```
+
+**Access Pattern:**
+```javascript
+// Read favorites
+const snapshot = await db.ref(
+    `Preferencias/${asesorActual}/Favoritos`
+).once('value');
+const favoritos = snapshot.val() || {};
+
+// Add to favorites
+await db.ref(
+    `Preferencias/${asesorActual}/Favoritos/${fileName}`
+).set(true);
+
+// Remove from favorites
+await db.ref(
+    `Preferencias/${asesorActual}/Favoritos/${fileName}`
+).remove();
+```
+
+### procedimientos (Procedures)
+
+Internal documentation and procedures:
+
+```javascript
+procedimientos: {
+    "Cómo_hacer_un_reembolso": {
+        "descripcion": "<p>Paso 1: Verificar...</p><p>Paso 2: ...</p>",
+        "enlaces": {
+            "Portal_de_reembolsos": "https://example.com/reembolsos",
+            "Guía_completa": "https://docs.example.com/guide"
+        }
+    },
+    "Escalamiento_de_casos": {
+        "descripcion": "<p>Para escalar un caso...</p>",
+        "enlaces": {
+            "Sistema_de_tickets": "https://tickets.example.com"
+        }
+    }
+}
+```
+
+**Access Pattern:**
+```javascript
+// Read all procedures
+const snapshot = await db.ref('procedimientos').once('value');
+const procedimientos = snapshot.val() || {};
+
+// Create new procedure
+await db.ref('procedimientos/' + nombreProcedimiento).set({
+    descripcion: descripcionHTML,
+    enlaces: {}
+});
+
+// Add link to procedure
+await db.ref(
+    `procedimientos/${procedimiento}/enlaces/${descripcionEnlace}`
+).set(urlEnlace);
+```
+
+### agentes (Agents)
+
+Stores agent passwords (referenced but values stored securely):
+
+```javascript
+agentes: {
+    "Andrés_Felipe_Yepes_Tascón": "encryptedPassword123",
+    "Judy_Andrea_Buitrago_Solis": "encryptedPassword456",
+    // ...
+}
+```
+
+**Access Pattern:**
+```javascript
+const contraseña = await firebase.database()
+    .ref('agentes/' + agente)
+    .once('value');
+agentes[agente].contraseña = contraseña.val();
+```
+
+## Data Organization Principles
+
+### 1. Denormalization
+
+Data is duplicated to optimize reads:
+
+```javascript
+// Instead of normalizing:
+// shifts/MT -> { hours: 9 }
+// assignments/agent1/day1 -> { shiftId: "MT" }
+// (requires 2 reads to get hours)
+
+// We denormalize:
+Turnos: {
+    "MT": { Cantidad: "9", ... }
+}
+celdas: {
+    agent1: { 1: { texto: "MT" } }
+}
+// Cache the Turnos once, then only read celdas
+```
+
+### 2. Hierarchical Structure
+
+Data is organized by access patterns:
+
+```javascript
+// Good: Can fetch all agent's data in one read
+celdas/agent_name/day/year/month
+
+// Bad: Would require separate reads per day
+celdas/day/agent_name/year/month
+```
+
+### 3. Flat Lists for Iteration
+
+Collections that need iteration are kept flat:
+
+```javascript
+Plantillas: {
+    template1: {...},
+    template2: {...}
+}
+// Easy to iterate: Object.keys(plantillas).forEach(...)
+```
+
+## Key Patterns
+
+### Auto-generated Keys
+
+For history entries:
+```javascript
+const newRef = db.ref('Historial').push();
+await newRef.set(data);
+// Creates: Historial/-NaBcDeFgHi123456
+```
+
+### Named Keys
+
+For most collections:
+```javascript
+await db.ref('Plantillas/Bienvenida').set(data);
+// Creates: Plantillas/Bienvenida
+```
+
+### Multi-level Keys
+
+For nested data:
+```javascript
+await db.ref('celdas/Agent_Name/1/2024/3').set({texto: "MT"});
+// Creates: celdas/Agent_Name/1/2024/3/texto
+```
+
+## Data Types
+
+### Strings
+```javascript
+"texto": "MT"
+"timestamp": "2024-03-15T14:30:00.000Z"
+```
+
+### Numbers
+```javascript
+"Cantidad": "9"  // Stored as string, parsed as needed
+"celda": 5       // Integer
+```
+
+### Booleans
+```javascript
+"Favoritos": {
+    "Bienvenida": true
+}
+```
+
+### Objects
+```javascript
+"cambios": [
+    { agente: "...", celda: 5, ... }
+]
+```
+
+### HTML
+```javascript
+"descripcion": "<p>Rich HTML content...</p>"
+```
+
+## Query Patterns
+
+### Single Item Read
+```javascript
+const value = await db.ref('path/to/item').once('value');
+```
+
+### Collection Read
+```javascript
+const collection = await db.ref('collection').once('value');
+const data = collection.val() || {};
+```
+
+### Filtered Read (Local)
+```javascript
+const snapshot = await db.ref('celdas/' + agent).once('value');
+const allData = snapshot.val();
+
+// Filter locally
+const filtered = {};
+for (const day in allData) {
+    if (allData[day][year] && allData[day][year][month]) {
+        filtered[day] = allData[day][year][month];
+    }
+}
+```
+
+### Batch Read
+```javascript
+const promises = agents.map(agent => 
+    db.ref(`celdas/${agent}`).once('value')
+);
+const results = await Promise.all(promises);
+```
+
+## Security Considerations
+
+### Firebase Rules
+
+The database should have rules like:
+
+```json
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
+    "celdas": {
+      "$agent": {
+        ".write": "auth.token.email_verified === true"
+      }
+    }
+  }
+}
+```
+
+### Data Validation
+
+Always validate data before writing:
+
+```javascript
+if (!nombrePlantilla || nombrePlantilla.trim() === '') {
+    throw new Error('Invalid template name');
+}
+
+if (await plantillaExists(nombrePlantilla)) {
+    throw new Error('Template already exists');
+}
+```
+
+## Best Practices
+
+1. **Keep paths consistent**: Use the same structure throughout
+2. **Use descriptive keys**: `Andrés_Felipe_Yepes_Tascón` not `user1`
+3. **Denormalize for reads**: Duplicate data when it improves performance
+4. **Avoid deep nesting**: Limit to 3-4 levels maximum
+5. **Use arrays sparingly**: Objects with keys are more flexible
+6. **Store timestamps**: Always include creation/modification times
+7. **Plan for growth**: Structure data to scale
+
+## Related Files
+
+- All `source/script*.js` files contain data access patterns
+- `source/FirebaseWrapper.js` - Database operation wrapper
+- `source/scriptHorariosStop.js` - Main schedule data operations

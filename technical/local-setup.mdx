@@ -1,0 +1,217 @@
+---
+title: 'Local Development Setup'
+description: 'Complete guide to setting up the Playground project for local development'
+---
+
+## Prerequisites
+
+Before setting up the Playground project locally, ensure you have the following installed:
+
+- **Node.js** (v14 or higher recommended)
+- **npm** (comes with Node.js)
+- **Git** for version control
+- A modern web browser (Chrome, Firefox, or Edge)
+- A code editor (VS Code recommended)
+
+## Project Structure
+
+The Playground project follows a straightforward file structure:
+
+```
+playground/
+├── netlify/
+│   └── functions/
+│       └── enviar-notificaciones.js    # Scheduled notification function
+├── Canciones/                          # Music files directory
+├── *.html                              # Application pages
+├── *.js                                # JavaScript modules
+├── *.css                               # Stylesheets
+├── package.json                        # Dependencies configuration
+├── netlify.toml                        # Netlify deployment config
+└── LICENSE.txt                         # MIT License
+```
+
+### Key Application Pages
+
+The project includes multiple HTML pages for different features:
+
+- `index.html` - Main dashboard/landing page
+- `login.html` - User authentication page
+- `Calculadora.html` - Calculator tool
+- `Herramientas.html` - Utilities and tools
+- `Plantillas.html` - Templates manager
+- `Procedimientos.html` - Procedures documentation
+- `HorariosStop.html` - Stop Jeans schedules
+- `Configuraciones.html` - User settings
+- `Pagos.html` - Payments management
+- `Varios.html` - Miscellaneous features
+- `Musica.html` - Music player
+- `juego.html` - Game page (BlackJack)
+
+### JavaScript Modules
+
+The application uses modular JavaScript architecture:
+
+- **Authentication**: `Autorizacion.js`, `CerrarSesion.js`, `scriptLogin.js`
+- **Firebase Integration**: `FirebaseMonitor.js`, `FirebaseWrapper.js`, `firebase-messaging-sw.js`
+- **Features**: `scriptCalculadora.js`, `scriptHerramientas.js`, `scriptProcedimientos.js`, etc.
+- **UI Components**: `Header.js`, `Marquee.js`, `Notificador.js`
+- **Configuration**: `PreferenciasGlobales.js`, `scriptConfiguraciones.js`
+- **Utilities**: `Almuerzo.js`, `ics.js`, `botonIA.js`, `botonFirebase.js`
+
+## Installation Steps
+
+### 1. Clone the Repository
+
+```bash
+git clone <repository-url>
+cd playground
+```
+
+### 2. Install Dependencies
+
+Install all required npm packages:
+
+```bash
+npm install
+```
+
+This will install the following dependencies:
+- `firebase` (^10.12.2) - Firebase SDK for web
+- `firebase-admin` (^12.0.0) - Firebase Admin SDK for server-side operations
+- `file-saverjs` (^1.3.6) - File download functionality
+- `ics` (^3.7.6) - iCalendar file generation
+- `tableexport` (^5.2.0) - Table export functionality
+
+### 3. Configure Firebase
+
+The application requires Firebase configuration for authentication and real-time database features.
+
+<Warning>
+Firebase credentials should never be committed to version control. Keep them in environment variables or secure configuration files.
+</Warning>
+
+You'll need to:
+
+1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
+2. Enable Firebase Authentication
+3. Set up Firebase Realtime Database
+4. Enable Firebase Cloud Messaging for push notifications
+5. Update the Firebase configuration in your JavaScript files
+
+### 4. Start Local Development Server
+
+Since this is a static web application, you can use any local web server:
+
+**Using Python:**
+
+```bash
+# Python 3
+python -m http.server 8000
+
+# Python 2
+python -m SimpleHTTPServer 8000
+```
+
+**Using Node.js (http-server):**
+
+```bash
+npx http-server -p 8000
+```
+
+**Using VS Code Live Server:**
+
+1. Install the "Live Server" extension
+2. Right-click on `index.html`
+3. Select "Open with Live Server"
+
+### 5. Access the Application
+
+Open your browser and navigate to:
+
+```
+http://localhost:8000
+```
+
+You should see the login page. After authentication, you'll be redirected to the main dashboard.
+
+## Environment Variables
+
+For local development with Netlify Functions, create a `.env` file in the project root:
+
+```bash
+FIREBASE_SERVICE_ACCOUNT={"type":"service_account","project_id":"..."}
+FIREBASE_DATABASE_URL=https://your-project.firebaseio.com
+```
+
+<Note>
+The `.env` file should be added to `.gitignore` to prevent accidental commits of sensitive data.
+</Note>
+
+## Testing Netlify Functions Locally
+
+To test the scheduled notification function locally:
+
+### 1. Install Netlify CLI
+
+```bash
+npm install -g netlify-cli
+```
+
+### 2. Run Functions Locally
+
+```bash
+netlify dev
+```
+
+This starts a local development server that emulates the Netlify environment.
+
+### 3. Test the Function
+
+The notification function can be triggered at:
+
+```
+http://localhost:8888/.netlify/functions/enviar-notificaciones
+```
+
+## Common Issues and Troubleshooting
+
+### Firebase Authentication Errors
+
+**Problem**: "Firebase: Error (auth/configuration-not-found)"
+
+**Solution**: Ensure Firebase is properly initialized with valid credentials.
+
+### CORS Issues
+
+**Problem**: Cross-Origin Request Blocked errors
+
+**Solution**: Use a proper local server instead of opening HTML files directly (`file://` protocol).
+
+### Missing Dependencies
+
+**Problem**: Module not found errors
+
+**Solution**: Run `npm install` to ensure all dependencies are installed.
+
+### Service Worker Registration Fails
+
+**Problem**: Firebase messaging service worker won't register
+
+**Solution**: Ensure you're running on `localhost` or `https://` (service workers require secure contexts).
+
+## Development Workflow
+
+1. **Make Changes**: Edit HTML, CSS, or JavaScript files
+2. **Test Locally**: Refresh browser to see changes (or use live reload)
+3. **Test Firebase Features**: Ensure authentication and database operations work
+4. **Test Functions**: Use Netlify CLI to test serverless functions
+5. **Commit Changes**: Use Git to commit your changes
+6. **Deploy**: Push to trigger automatic deployment (see [Deployment](/technical/deployment))
+
+## Next Steps
+
+- Learn about [deployment configuration](/technical/deployment)
+- Explore [project dependencies](/technical/dependencies)
+- Review the Firebase Realtime Database structure
+- Understand the notification scheduling system

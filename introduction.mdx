@@ -1,0 +1,154 @@
+---
+title: Introduction
+description: Welcome to Playground - A comprehensive productivity SaaS platform with multiple tools and modules
+---
+
+## What is Playground?
+
+Playground is a comprehensive productivity web application designed to streamline daily tasks and workflows. Built with Firebase authentication and real-time database integration, it offers a suite of productivity modules accessible through a unified platform.
+
+<img src="/images/logo.png" alt="Playground Logo" className="rounded-lg" />
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Firebase Authentication" icon="lock">
+    Secure user authentication with automatic session management and 8-hour session timeouts
+  </Card>
+  <Card title="Multiple Productivity Modules" icon="grid">
+    Access calculators, templates, procedures, tools, and scheduling systems in one place
+  </Card>
+  <Card title="Real-time Database" icon="database">
+    Firebase Realtime Database integration for instant data synchronization
+  </Card>
+  <Card title="Customizable Themes" icon="palette">
+    Personalized user experience with custom colors, fonts, and background images
+  </Card>
+</CardGroup>
+
+## Available Modules
+
+Playground includes the following productivity modules:
+
+<Steps>
+  <Step title="Calculadora (Calculator)">
+    Grade calculator with percentage-based calculations and minimum passing grade features
+  </Step>
+  <Step title="Herramientas (Tools)">
+    Collection of utility tools for various tasks
+  </Step>
+  <Step title="Plantillas (Templates)">
+    Pre-built templates for common workflows
+  </Step>
+  <Step title="Procedimientos (Procedures)">
+    Step-by-step procedure guides and documentation
+  </Step>
+  <Step title="Horarios Stop Jeans">
+    Scheduling system for Stop Jeans operations
+  </Step>
+  <Step title="BlackJack Game">
+    Integrated gaming module for breaks
+  </Step>
+</Steps>
+
+## Technology Stack
+
+<AccordionGroup>
+  <Accordion title="Frontend">
+    - **HTML5** with semantic markup
+    - **CSS3** with custom CSS variables for theming
+    - **JavaScript (ES6+)** for client-side logic
+    - **Font Awesome** for iconography
+    - **Google Fonts** (Nunito, Open Sans)
+  </Accordion>
+  
+  <Accordion title="Backend & Database">
+    - **Firebase Authentication** (v8.10.0)
+    - **Firebase Realtime Database** for data persistence
+    - **Netlify Functions** for serverless operations
+  </Accordion>
+  
+  <Accordion title="Additional Libraries">
+    - **Math.js** (v9.4.4) for advanced calculations
+    - **ICS.js** for calendar generation
+  </Accordion>
+</AccordionGroup>
+
+## User Management
+
+Playground supports multiple users with personalized preferences:
+
+```javascript
+let agentesA = {
+    "andres.yepes": { nombre: "Andrés_Felipe_Yepes_Tascón" },
+    "judy.buitrago": { nombre: "Judy_Andrea_Buitrago_Solis" },
+    "yeison.torres": { nombre: "Yeison_Torres_Ochoa" },
+    "maria.ospina": { nombre: "Maria_Susana_Ospina_Vanegas" },
+    "ocaris.arango": { nombre: "Ocaris_David_Arango_Aguilar" },
+    "johan.guzman": { nombre: "Johan_Guzman_Alarcon" },
+    "diego.usuga": { nombre: "Diego_Alejandro_Úsuga_Yepes" },
+    "santiago.ramirez": { nombre: "Santiago_Ramirez_Guzman" }
+};
+```
+
+<Note>
+Each user has personalized settings stored in localStorage, including theme preferences, color schemes, and module configurations.
+</Note>
+
+## Architecture Overview
+
+Playground follows a modular architecture with shared components:
+
+```
+playground/
+├── Authentication Layer (Firebase Auth)
+├── Navigation Header (shared across modules)
+├── Module Pages
+│   ├── Calculadora
+│   ├── Herramientas
+│   ├── Plantillas
+│   ├── Procedimientos
+│   └── Horarios
+├── Configuration System
+├── Theme Engine (PreferenciasColores)
+└── Notification System
+```
+
+## Security Features
+
+<Warning>
+Playground implements several security measures:
+- Session timeout after 8 hours
+- Firebase authentication integration
+- Email format validation
+- Protected routes requiring authentication
+</Warning>
+
+## Browser Support
+
+Playground is optimized for modern browsers:
+- Chrome (recommended)
+- Firefox
+- Safari
+- Edge
+
+<Note>
+Mobile responsive design ensures accessibility across devices with viewport meta tags and adaptive layouts.
+</Note>
+
+## Copyright & License
+
+```
+Copyright (c) 2024 Andrés Felipe Yepes Tascón
+Licensed under the MIT License
+```
+
+## Next Steps
+
+<Card title="Get Started" icon="rocket" href="/getting-started">
+  Learn how to set up and start using Playground
+</Card>
+
+<Card title="Authentication Guide" icon="key" href="/authentication">
+  Understand the authentication flow and user management
+</Card>

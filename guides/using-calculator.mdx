@@ -1,0 +1,386 @@
+---
+title: Using the Calculator
+description: Calculate grades, percentages, and determine required scores for academic success
+---
+
+## Overview
+
+The Grade Calculator helps you track academic performance by calculating final grades, relative grades, and determining what scores you need on remaining assessments to achieve your target grade.
+
+## Quick Start
+
+The calculator supports up to 100 points (or 5.0 scale depending on configuration) and allows you to:
+
+- Add multiple grades with different weights
+- Calculate absolute and relative final grades
+- Determine required scores for minimum passing grades
+- Visualize performance with color-coded results
+
+## Adding Grades
+
+<Steps>
+  <Step title="Initial Input Fields">
+    When the page loads, you'll see two input fields:
+    - **Nota**: The grade you received (0-5 scale)
+    - **Porcentaje**: The weight percentage for that grade (0-100%)
+  </Step>
+  
+  <Step title="Add More Grades">
+    Click the "Agregar Nota" (Add Grade) button to add additional grade/percentage pairs.
+    
+    <Tip>
+    You can add as many grades as needed. The calculator handles complex grading systems with multiple components.
+    </Tip>
+  </Step>
+  
+  <Step title="Remove Grades">
+    Click "Eliminar Nota" (Remove Grade) to delete the last grade entry.
+    
+    <Note>
+    You must always have at least one grade entry. The calculator prevents removing the last entry.
+    </Note>
+  </Step>
+</Steps>
+
+## Calculating Results
+
+<Steps>
+  <Step title="Enter Your Grades">
+    Fill in all grade and percentage fields:
+    
+    Example:
+    - Grade 1: 4.5 at 30%
+    - Grade 2: 3.8 at 40%
+    - Grade 3: 4.2 at 30%
+  </Step>
+  
+  <Step title="Enter Target Grade (Optional)">
+    If you want to know what score you need on remaining work, enter your minimum target grade in the "Nota Mínima" field.
+  </Step>
+  
+  <Step title="Click Calculate">
+    Click the "Calcular" (Calculate) button to process your grades.
+    
+    The calculator performs the following validations:
+    ```javascript
+    // Grade validation
+    if (notas[i].valueAsNumber > 5 || notas[i].valueAsNumber < 0 || isNaN(notas[i].valueAsNumber)) {
+        alert("La nota no puede ser mayor a 5 o menor a 0...");
+    }
+    
+    // Percentage validation
+    if (Porcentajes > 100 || Porcentajes < 0 || isNaN(Porcentajes)) {
+        alert("Los porcentajes no pueden ser mayor a 100...");
+    }
+    ```
+  </Step>
+  
+  <Step title="Review Results">
+    The calculator displays three key metrics:
+    1. **Nota Absoluta (Absolute Grade)**: Your current grade based on completed work
+    2. **Nota Relativa (Relative Grade)**: Your grade adjusted to 100% (as if all work were complete)
+    3. **Nota Faltante (Required Grade)**: What you need to score on remaining work
+  </Step>
+</Steps>
+
+## Understanding Results
+
+### Absolute Grade (Nota Absoluta)
+
+This is your current grade based on the work you've completed:
+
+```javascript
+notaFinal += notas[i].valueAsNumber * (notas[i + 1].valueAsNumber / 100);
+```
+
+**Example**: If you have:
+- 4.5 at 30% = 1.35
+- 3.8 at 40% = 1.52
+- Total absolute = 2.87 (out of 70% completed)
+
+<Note>
+The absolute grade shows your current standing. If you've only completed 70% of coursework, your absolute grade will be proportionally lower.
+</Note>
+
+### Relative Grade (Nota Relativa)
+
+This projects your performance as if you had completed 100% of the work:
+
+```javascript
+notaRelativa += notas[i].valueAsNumber * (notas[i + 1].valueAsNumber / Porcentajes);
+```
+
+**Example**: With 2.87 absolute on 70% work:
+- Relative grade = 2.87 / 0.70 = 4.10
+
+This answers the question: "If I maintain this performance, what will my final grade be?"
+
+### Required Grade (Nota Faltante)
+
+This calculates what score you need on remaining work to reach your target:
+
+```javascript
+var Faltante = 100 - Porcentajes;
+var notaFaltante = (notaMinima[0].valueAsNumber - notaFinal) / (Faltante / 100);
+```
+
+**Example**: If you want a 4.0 final grade:
+- Current: 2.87 on 70%
+- Remaining: 30%
+- Required: (4.0 - 2.87) / 0.30 = 3.77
+
+You need to score 3.77 on the remaining 30% to achieve a 4.0 final grade.
+
+## Color-Coded Results
+
+The calculator uses color coding to help you quickly assess your performance:
+
+### Grade Colors
+
+<CardGroup cols={3}>
+  <Card title="Green" icon="circle-check" color="#10b981">
+    **Grade ≥ 4.0**
+    
+    Excellent performance, passing with distinction.
+  </Card>
+  
+  <Card title="Orange" icon="circle-exclamation" color="#f59e0b">
+    **3.0 ≤ Grade < 4.0**
+    
+    Passing but needs improvement.
+  </Card>
+  
+  <Card title="Red" icon="circle-xmark" color="#ef4444">
+    **Grade < 3.0**
+    
+    Failing, requires immediate attention.
+  </Card>
+</CardGroup>
+
+### Required Grade Colors
+
+When calculating what you need on remaining work:
+
+- **Green**: "Ya alcanzó la nota mínima" - You've already met your target
+- **Orange**: Achievable score needed (between 0 and 5)
+- **Red**: "No es posible alcanzar la nota mínima" - Target is mathematically impossible
+
+<Warning>
+If the required grade shows red, you cannot reach your target grade even with perfect scores on remaining work. Consider adjusting your target or speaking with your instructor.
+</Warning>
+
+## Example Scenarios
+
+### Scenario 1: Mid-Term Check
+
+<Steps>
+  <Step title="Input Completed Work">
+    - Quiz 1: 4.2 at 15%
+    - Quiz 2: 3.9 at 15%
+    - Midterm: 4.5 at 30%
+    
+    Total completed: 60%
+  </Step>
+  
+  <Step title="Set Target">
+    Enter 4.0 as your minimum desired grade.
+  </Step>
+  
+  <Step title="Calculate">
+    Results:
+    - **Absolute**: 2.55 (60% completed)
+    - **Relative**: 4.25 (projected if maintained)
+    - **Required**: 3.63 on remaining 40%
+  </Step>
+  
+  <Step title="Interpret">
+    You're on track! Your current pace projects to 4.25. To guarantee 4.0, you need 3.63 on remaining work.
+  </Step>
+</Steps>
+
+### Scenario 2: Final Exam Planning
+
+<Steps>
+  <Step title="Input All Pre-Exam Work">
+    - Assignments: 4.0 at 25%
+    - Quizzes: 3.5 at 20%
+    - Projects: 4.3 at 25%
+    
+    Total: 70% completed
+    Remaining: 30% (final exam)
+  </Step>
+  
+  <Step title="Set Passing Grade">
+    Enter 3.0 as minimum to pass.
+  </Step>
+  
+  <Step title="Calculate">
+    Results:
+    - **Absolute**: 2.93
+    - **Required**: 3.23 on final exam
+  </Step>
+  
+  <Step title="Study Plan">
+    You need 3.23 on the final (30%) to pass. Allocate study time accordingly.
+  </Step>
+</Steps>
+
+### Scenario 3: Recovery Planning
+
+<Steps>
+  <Step title="Input Poor Early Performance">
+    - Test 1: 2.5 at 30%
+    - Test 2: 2.8 at 30%
+    
+    Total: 60% completed
+  </Step>
+  
+  <Step title="Set Target">
+    Enter 3.5 as desired final grade.
+  </Step>
+  
+  <Step title="Calculate">
+    Results:
+    - **Absolute**: 1.59
+    - **Required**: 4.76 on remaining 40%
+  </Step>
+  
+  <Step title="Reality Check">
+    The required grade (4.76) is shown in RED because it exceeds the maximum (5.0). You need to:
+    - Lower your target grade, or
+    - Seek extra credit opportunities, or
+    - Discuss options with your instructor
+  </Step>
+</Steps>
+
+## Advanced Features
+
+### Handling Partial Percentages
+
+The calculator handles situations where you haven't completed all coursework:
+
+```javascript
+var Porcentajes = 0;
+for (var i = 0; i < notas.length; i += 2) {
+    Porcentajes += notas[i + 1].valueAsNumber;
+}
+```
+
+If your percentages sum to less than 100%, the calculator:
+1. Calculates absolute grade on completed work
+2. Projects relative grade
+3. Shows what's needed on remaining percentage
+
+### Resetting the Calculator
+
+<Steps>
+  <Step title="Click Refresh">
+    Click the "Refresh" button to clear all entries and start over.
+  </Step>
+  
+  <Step title="Page Reload">
+    This performs a full page reload, resetting to the initial state with one empty grade entry.
+  </Step>
+</Steps>
+
+### Switching Calculators
+
+<Steps>
+  <Step title="Click Change Button">
+    If available, click "cambio" to switch to the alternative calculator view (Varios.html).
+  </Step>
+</Steps>
+
+## Validation Rules
+
+The calculator enforces these rules:
+
+<CardGroup cols={2}>
+  <Card title="Grade Range" icon="chart-simple">
+    - Minimum: 0
+    - Maximum: 5
+    - Must be numeric
+    - Cannot be empty
+  </Card>
+  
+  <Card title="Percentage Range" icon="percent">
+    - Minimum: 0%
+    - Maximum: 100% (total)
+    - Must be numeric
+    - Cannot be empty
+  </Card>
+</CardGroup>
+
+<Warning>
+**Common Errors**:
+- "La nota no puede ser mayor a 5 o menor a 0" - Check grade values
+- "Los porcentajes no pueden ser mayor a 100" - Your percentages sum to more than 100%
+- Invalid characters - Use only numbers
+</Warning>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Regular Monitoring" icon="clock">
+    Calculate your grades after each major assessment to track progress.
+  </Card>
+  
+  <Card title="Realistic Targets" icon="bullseye">
+    Set achievable minimum grade targets based on required scores.
+  </Card>
+  
+  <Card title="Early Intervention" icon="triangle-exclamation">
+    If required scores are too high, seek help early rather than waiting.
+  </Card>
+  
+  <Card title="Double-Check Percentages" icon="check-double">
+    Verify that your percentage weights match your course syllabus.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Calculator shows wrong results">
+    **Solution**: Verify that:
+    - All grades are on the correct scale (0-5)
+    - Percentages sum to the correct total
+    - You're entering grades, not percentages, in the grade fields
+    
+    Try clicking Refresh and re-entering data carefully.
+  </Accordion>
+  
+  <Accordion title="Cannot add more grades">
+    **Solution**: There's no limit on grade entries. If the button doesn't work:
+    - Refresh the page
+    - Check browser console for errors
+    - Try a different browser
+  </Accordion>
+  
+  <Accordion title="Required grade is red/impossible">
+    **Solution**: This means your target is mathematically impossible to achieve. Options:
+    - Lower your target grade to something achievable
+    - Check if extra credit is available
+    - Discuss grade recovery options with instructor
+    - Verify that you entered all completed work correctly
+  </Accordion>
+  
+  <Accordion title="Percentages don't sum to 100">
+    **Solution**: This is okay! The calculator handles:
+    - Partial completion (e.g., 60% done, 40% remaining)
+    - The relative grade shows what your final grade would be if you maintain performance
+    - The required grade shows what you need on the remaining percentage
+  </Accordion>
+</AccordionGroup>
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Managing Schedules" icon="calendar" href="/guides/managing-schedules">
+    Plan your study time effectively
+  </Card>
+  
+  <Card title="Working with Procedures" icon="list-check" href="/guides/working-with-procedures">
+    Access academic procedures
+  </Card>
+</CardGroup>

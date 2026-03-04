@@ -1,0 +1,322 @@
+---
+title: Managing Schedules
+description: Learn how to view, edit, and export employee schedules in the Playground system
+---
+
+## Overview
+
+The Schedule Management module allows you to view, edit, and manage employee work schedules across different months and years. This guide covers all essential workflows for working with schedules.
+
+## Viewing Schedules
+
+<Steps>
+  <Step title="Access the Schedule View">
+    Navigate to the schedules section where you'll see a calendar-style grid displaying all employees and their assigned shifts.
+  </Step>
+  
+  <Step title="Select Month and Year">
+    Use the month and year dropdowns at the top of the page to navigate to the desired time period. The system defaults to the current month and year.
+    
+    ```javascript
+    // Month selector automatically updates to current month
+    var mesActual = new Date().getMonth();
+    selectMes.selectedIndex = mesActual;
+    ```
+  </Step>
+  
+  <Step title="Understanding the Grid">
+    - Each row represents an employee
+    - Each column represents a day of the month
+    - Cells contain shift codes (e.g., "A", "B", "D" for rest days)
+    - Colors indicate different shift types based on your configuration
+  </Step>
+</Steps>
+
+## Shift Color Coding
+
+The system automatically applies colors to shifts based on their configuration in Firebase:
+
+- **Background Color**: Retrieved from `ColorF` field in the `Turnos` table
+- **Text Color**: Retrieved from `ColorT` field in the `Turnos` table
+- **Rest Days (D)**: Counted separately in the rest days counter
+- **Special Dates**: Holidays appear with red background
+
+<Tip>
+The system uses a global cache to optimize color loading. Colors are preloaded once when the page loads, reducing Firebase queries from hundreds to just one.
+</Tip>
+
+## Editing Schedules
+
+<Steps>
+  <Step title="Enter Password">
+    To edit schedules, you need to authenticate:
+    1. Click on any editable cell
+    2. Enter your password when prompted
+    3. Your password is validated against the `agentes` database
+  </Step>
+  
+  <Step title="Modify Schedule Cells">
+    - Click on any cell to edit it
+    - Type the shift code directly into the cell
+    - Colors update automatically based on shift configuration
+    - Empty cells default to white background
+  </Step>
+  
+  <Step title="Save Changes">
+    Click the "Save" button to commit your changes. The system will:
+    - Validate all entries
+    - Update Firebase with new values
+    - Log changes to the history (`Historial` node)
+    - Refresh the view automatically
+    
+    ```javascript
+    // Only meaningful changes are saved to history
+    // Empty to empty: Save to Firebase, NOT to history
+    // Empty to content: Save to Firebase AND history
+    // Content to empty: Save to Firebase, NOT to history
+    // Content to different content: Save to Firebase AND history
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+Changes are permanent once saved. Make sure to review your edits before clicking the Save button.
+</Warning>
+
+## Import/Export Features
+
+### Importing from Clipboard
+
+<Steps>
+  <Step title="Copy Data">
+    Copy tabular data from Excel or another source to your clipboard.
+  </Step>
+  
+  <Step title="Click Import Button">
+    Click the "Import" button to paste clipboard data into the schedule grid.
+  </Step>
+  
+  <Step title="Confirm Import">
+    Review the imported data and click Save to commit the changes.
+  </Step>
+</Steps>
+
+### Exporting Schedules
+
+The system supports multiple export formats:
+
+#### Excel Export
+
+<Steps>
+  <Step title="Open Export Modal">
+    Click the "Export" button to open the export options dialog.
+  </Step>
+  
+  <Step title="Select Excel Format">
+    Click "Export to Excel" to download the current schedule as an `.xlsx` file.
+    
+    The exported file includes:
+    - All employee names
+    - Complete shift assignments for the month
+    - Day of week headers
+    - Rest day counters
+  </Step>
+</Steps>
+
+#### PNG Export
+
+<Steps>
+  <Step title="Generate Image">
+    Click "Export to PNG" to create a visual snapshot of the schedule.
+  </Step>
+  
+  <Step title="Download">
+    The system uses `html2canvas` to convert the schedule table to an image, which downloads automatically.
+  </Step>
+</Steps>
+
+#### Calendar Export (ICS)
+
+<Steps>
+  <Step title="Select Export ICS">
+    Click "Export to ICS" to generate a calendar file for the selected employee.
+  </Step>
+  
+  <Step title="Import to Calendar">
+    Open the downloaded `.ics` file with your calendar application (Google Calendar, Outlook, etc.)
+    
+    Each calendar entry includes:
+    - Event name: Shift code
+    - Location: Work location (e.g., "Arus")
+    - Start and end times from shift configuration
+    - All-day events for rest days
+  </Step>
+</Steps>
+
+#### Text Export
+
+<Steps>
+  <Step title="Select Employee">
+    Make sure an employee is selected from the schedule view.
+  </Step>
+  
+  <Step title="Click Text Export">
+    Click the "Export to Text" button to copy a formatted text version to your clipboard.
+  </Step>
+  
+  <Step title="Paste and Share">
+    The formatted text includes:
+    - Employee name
+    - Month and year
+    - Each day with day of week, shift code, and time range
+    
+    Example output:
+    ```
+    Turnos de Juan Pérez en Enero:
+    
+    Lunes 1: (A) 7:00 AM - 3:00 PM
+    Martes 2: (B) 3:00 PM - 11:00 PM
+    Miércoles 3: (D) Descanso
+    ...
+    ```
+  </Step>
+</Steps>
+
+## Automated Features
+
+### Week Borders
+
+The system automatically highlights week boundaries:
+- Detects Sundays in the calendar
+- Draws borders at the end of each week
+- Updates when you change months
+
+### Holiday Highlighting
+
+<Steps>
+  <Step title="Automatic Detection">
+    Holidays are configured in the system and automatically highlighted:
+    ```javascript
+    var festivos = {
+      "Enero": [1, 12],
+      "Febrero": [],
+      "Marzo": [23],
+      // ... etc
+    };
+    ```
+  </Step>
+  
+  <Step title="Visual Indicators">
+    - Holiday dates appear with red background
+    - Current day appears with blue background
+    - Current day + holiday appears with orange background
+  </Step>
+</Steps>
+
+### Hours Calculation
+
+The system automatically calculates total hours for each employee:
+
+<Steps>
+  <Step title="Automatic Counting">
+    When schedules load, the system:
+    - Reads shift hour values from the `Turnos` table
+    - Multiplies by the number of times each shift appears
+    - Displays totals in the summary row
+  </Step>
+  
+  <Step title="Rest Day Counter">
+    A separate counter tracks days marked with "D" (rest days) for each employee.
+  </Step>
+</Steps>
+
+<Tip>
+Hours are calculated using cached shift data to minimize Firebase reads. The cache updates automatically when shift configurations change.
+</Tip>
+
+## Weekly Summary View
+
+The system includes a special weekly view that groups schedules by week:
+
+<Steps>
+  <Step title="Access Weekly View">
+    Navigate to the weekly summary section (Table3).
+  </Step>
+  
+  <Step title="Understanding Week Ranges">
+    - Weeks run from Monday to Sunday
+    - The system calculates complete weeks that overlap with the selected month
+    - Week headers show date ranges (e.g., "Semana 1 (1-7 Ene)")
+  </Step>
+  
+  <Step title="Holiday Indicators">
+    Weeks containing holidays are highlighted with a red header background.
+  </Step>
+</Steps>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Regular Backups" icon="floppy-disk">
+    Export schedules regularly to Excel or PNG for backup purposes.
+  </Card>
+  
+  <Card title="Double-Check Before Saving" icon="check">
+    Review all changes carefully before clicking Save, as changes are permanent.
+  </Card>
+  
+  <Card title="Use Import for Bulk Changes" icon="upload">
+    When updating multiple cells, prepare data in Excel and use the Import feature.
+  </Card>
+  
+  <Card title="Monitor History" icon="clock-rotate-left">
+    The system logs all meaningful changes to the `Historial` node for auditing.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Colors not appearing correctly">
+    **Solution**: The system preloads colors when the page loads. Try refreshing the page to reload the color cache.
+    
+    If colors are still incorrect, verify that:
+    - The `Turnos` table has `ColorF` and `ColorT` fields
+    - Color values are in hex format without the `#` prefix
+  </Accordion>
+  
+  <Accordion title="Changes not saving">
+    **Solution**: Check that:
+    - You entered the correct password
+    - You have internet connectivity
+    - The Firebase database is accessible
+    
+    The console will show specific error messages if Firebase operations fail.
+  </Accordion>
+  
+  <Accordion title="Hours calculation is incorrect">
+    **Solution**: Verify that:
+    - Each shift code in the schedule exists in the `Turnos` table
+    - The `Cantidad` field contains the correct hour value
+    - The cache has been refreshed (reload the page)
+  </Accordion>
+  
+  <Accordion title="Import not working">
+    **Solution**: Ensure that:
+    - Data is copied as tab-delimited text
+    - The number of columns matches the schedule grid
+    - You confirmed the import dialog
+  </Accordion>
+</AccordionGroup>
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Creating Templates" icon="file-lines" href="/guides/creating-templates">
+    Learn how to create shift templates
+  </Card>
+  
+  <Card title="Working with Procedures" icon="list-check" href="/guides/working-with-procedures">
+    Access documented procedures
+  </Card>
+</CardGroup>

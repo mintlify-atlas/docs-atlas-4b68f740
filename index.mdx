@@ -1,97 +1,220 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: Welcome to Playground
+description: Your comprehensive productivity and business management platform
+mode: custom
 ---
 
-## Setting up
+<div className="relative overflow-hidden bg-gradient-to-br from-[#FFA500] via-[#FFB733] to-[#CC8400] dark:from-[#CC8400] dark:via-[#FFA500] dark:to-[#FFB733]">
+  <div className="absolute inset-0 bg-black/40 dark:bg-black/60"></div>
+  <div className="relative max-w-7xl mx-auto px-6 sm:px-8 py-20 sm:py-24 lg:py-28">
+    <div className="max-w-3xl">
+      <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+        Welcome to Playground Documentation
+      </h1>
+      <p className="text-lg sm:text-xl text-white/90 max-w-2xl mb-8">
+        Discover how to leverage Playground's powerful suite of productivity tools for scheduling, templates, calculations, and document management.
+      </p>
+      <div className="flex flex-wrap gap-3 sm:gap-4">
+        <a 
+          href="/getting-started" 
+          className="inline-flex items-center px-6 py-3 bg-white text-[#FFA500] font-semibold rounded-lg hover:bg-gray-100 transition-colors no-underline"
+        >
+          Get Started
+        </a>
+        <a 
+          href="/introduction" 
+          className="inline-flex items-center px-6 py-3 border border-white/30 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-lg hover:bg-white/20 transition-colors no-underline"
+        >
+          Explore Features
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
 
-Get your documentation site up and running in minutes.
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <div className="text-center mb-12">
+    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+      Quick Start
+    </h2>
+    <p className="text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+      Get up and running with Playground in just a few steps
+    </p>
+  </div>
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+  <Steps>
+    <Step title="Create your account">
+      Navigate to the login page and authenticate with your credentials. Playground uses Firebase Authentication for secure access.
+      
+      ```javascript
+      // Firebase Authentication configuration
+      const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "playgroundbdstop.firebaseapp.com",
+        databaseURL: "https://playgroundbdstop-default-rtdb.firebaseio.com",
+        projectId: "playgroundbdstop"
+      };
+      ```
+    </Step>
 
-## Make it yours
+    <Step title="Explore the dashboard">
+      After logging in, you'll see the main dashboard with modules for Calculator, Herramientas (Tools), Plantillas (Templates), Procedimientos (Procedures), and Horarios Stop Jeans (Schedules).
+      
+      <Note>
+        Your user preferences and theme settings are automatically saved to localStorage for a personalized experience.
+      </Note>
+    </Step>
 
-Design a docs site that looks great and empowers your users.
+    <Step title="Customize your workspace">
+      Visit the **Configuraciones** (Settings) page to customize themes, colors, and preferences. Choose from multiple pre-built themes or create your own color scheme.
+      
+      ```javascript
+      // Theme customization example
+      localStorage.setItem('timerActive', 'true');
+      localStorage.setItem('temaActual', 'custom-theme');
+      ```
+    </Step>
 
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
+    <Step title="Start using features">
+      Access any module from the navigation menu. Each feature is designed to streamline your workflow:
+      - **Calculator**: Grade calculations with percentage breakdowns
+      - **Templates**: Create and manage reusable templates with color coding
+      - **Schedules**: Manage shifts and employee schedules for Stop Jeans stores
+      - **Procedures**: Document processes with a rich text editor
+    </Step>
+  </Steps>
+</div>
 
-## Create beautiful pages
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <div className="text-center mb-12">
+    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+      Explore by Feature
+    </h2>
+    <p className="text-base text-gray-600 dark:text-gray-400">
+      Dive into the features that matter most to you
+    </p>
+  </div>
 
-Everything you need to create world-class documentation.
+  <CardGroup cols={3}>
+    <Card title="Grade Calculator" icon="calculator" href="/features/calculator">
+      Calculate academic grades with multiple evaluation periods and percentage distributions
+    </Card>
+    <Card title="Templates" icon="file-lines" href="/features/templates">
+      Create, organize, and share templates with color-coded categories
+    </Card>
+    <Card title="Schedule Management" icon="calendar-days" href="/features/schedules">
+      Manage employee shifts and schedules with real-time updates
+    </Card>
+    <Card title="Tools & Utilities" icon="wrench" href="/features/tools">
+      Access discount calculators, document viewers, and file management tools
+    </Card>
+    <Card title="Procedures" icon="book-open" href="/features/procedures">
+      Document your processes with a rich text editor and export capabilities
+    </Card>
+    <Card title="Theme Customization" icon="palette" href="/configuration/themes">
+      Personalize your workspace with customizable themes and color schemes
+    </Card>
+  </CardGroup>
+</div>
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <div className="text-center mb-12">
+    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+      Key Capabilities
+    </h2>
+    <p className="text-base text-gray-600 dark:text-gray-400">
+      Everything you need to manage your business operations
+    </p>
+  </div>
 
-## Need inspiration?
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="p-6 bg-gray-50 dark:bg-[#1a1d27] border border-gray-200 dark:border-[#27272a] rounded-xl">
+      <div className="flex items-start gap-4">
+        <div className="flex-shrink-0 w-10 h-10 bg-[#FFA500]/10 rounded-lg flex items-center justify-center">
+          <svg className="w-6 h-6 text-[#FFA500]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            Firebase Integration
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Secure authentication and real-time database synchronization powered by Firebase
+          </p>
+        </div>
+      </div>
+    </div>
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+    <div className="p-6 bg-gray-50 dark:bg-[#1a1d27] border border-gray-200 dark:border-[#27272a] rounded-xl">
+      <div className="flex items-start gap-4">
+        <div className="flex-shrink-0 w-10 h-10 bg-[#FFA500]/10 rounded-lg flex items-center justify-center">
+          <svg className="w-6 h-6 text-[#FFA500]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            Data Export
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Export schedules, templates, and data to CSV and ICS formats for external use
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div className="p-6 bg-gray-50 dark:bg-[#1a1d27] border border-gray-200 dark:border-[#27272a] rounded-xl">
+      <div className="flex items-start gap-4">
+        <div className="flex-shrink-0 w-10 h-10 bg-[#FFA500]/10 rounded-lg flex items-center justify-center">
+          <svg className="w-6 h-6 text-[#FFA500]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            Real-time Notifications
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Stay updated with browser notifications for important events and changes
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div className="p-6 bg-gray-50 dark:bg-[#1a1d27] border border-gray-200 dark:border-[#27272a] rounded-xl">
+      <div className="flex items-start gap-4">
+        <div className="flex-shrink-0 w-10 h-10 bg-[#FFA500]/10 rounded-lg flex items-center justify-center">
+          <svg className="w-6 h-6 text-[#FFA500]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            Smart Caching
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Optimized performance with intelligent caching strategies for faster load times
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <div className="p-8 bg-gradient-to-r from-[#FFA500] to-[#FFB733] dark:from-[#CC8400] dark:to-[#FFA500] rounded-2xl text-center">
+    <h2 className="text-3xl font-bold text-white mb-4">
+      Ready to get started?
+    </h2>
+    <p className="text-lg text-white/90 mb-6 max-w-2xl mx-auto">
+      Explore our comprehensive guides to make the most of Playground's features
+    </p>
+    <a 
+      href="/getting-started" 
+      className="inline-flex items-center px-6 py-3 bg-white text-[#FFA500] font-semibold rounded-lg hover:bg-gray-100 transition-colors no-underline"
+    >
+      Get Started Now
+    </a>
+  </div>
+</div>

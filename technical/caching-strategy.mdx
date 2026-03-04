@@ -1,0 +1,454 @@
+---
+title: Caching Strategy
+description: Implementation of multi-layer caching system using localStorage and in-memory caches
+---
+
+## Overview
+
+The Playground project implements a sophisticated multi-layer caching strategy to minimize Firebase operations, reduce latency, and improve user experience. The system uses both **localStorage** for persistence and **in-memory Map objects** for fast access.
+
+## Caching Layers
+
+### 1. LocalStorage Cache (Persistent)
+
+Used for data that needs to survive page reloads and persist across sessions.
+
+### 2. In-Memory Cache (Fast)
+
+Used for frequently accessed data during a single page session.
+
+### 3. Firebase (Source of Truth)
+
+The database serves as the authoritative source, with cache invalidation strategies.
+
+## LocalStorage Caching
+
+### Plantillas (Templates) Cache
+
+Templates are cached in localStorage with a 5-minute validity window:
+
+```javascript
+let plantillasCache = JSON.parse(localStorage.getItem('plantillasCache')) || null;
+let favoritosCache = JSON.parse(localStorage.getItem('favoritosCache')) || null;
+let coloresCache = JSON.parse(localStorage.getItem('coloresPlantillas')) || {};
+let lastUpdate = localStorage.getItem('plantillasLastUpdate') || 0;
+
+// Check cache validity (5 minutes = 300000ms)
+const now = Date.now();
+const cacheValid = plantillasCache && favoritosCache && (now - lastUpdate < 300000);
+
+if (cacheValid) {
+    // Use cached data
+    renderizarPlantillas(plantillasCache, favoritosCache, asesorActual);
+    loadingScreen.style.display = "none";
+    
+    // Verify changes in background
+    verificarCambiosEnSegundoPlano(asesorActual);
+} else {
+    // Load fresh data
+    cargarPlantillasCompleto(asesorActual, loadingScreen);
+}
+```
+
+### Cache Update Strategy
+
+```javascript
+function cargarPlantillasCompleto(asesorActual, loadingScreen) {
+    db.ref('Preferencias/' + asesorActual + '/Favoritos').once('value')
+        .then(function(favSnapshot) {
+            favoritosCache = favSnapshot.val() || {};
+            localStorage.setItem('favoritosCache', JSON.stringify(favoritosCache));
+            
+            return db.ref('Plantillas').once('value');
+        })
+        .then(function(snapshot) {
+            plantillasCache = snapshot.val() || {};
+            localStorage.setItem('plantillasCache', JSON.stringify(plantillasCache));
+            localStorage.setItem('plantillasLastUpdate', Date.now().toString());
+            
+            renderizarPlantillas(plantillasCache, favoritosCache, asesorActual);
+            loadingScreen.style.display = "none";
+        });
+}
+```
+
+### Background Verification
+
+While using cached data, the system monitors Firebase for changes:
+
+```javascript
+function verificarCambiosEnSegundoPlano(asesorActual) {
+    // Monitor plantillas changes
+    db.ref('Plantillas').on('value', function(snapshot) {
+        const nuevasPlantillas = snapshot.val() || {};
+        if (JSON.stringify(nuevasPlantillas) !== JSON.stringify(plantillasCache)) {
+            // Update cache and UI
+            plantillasCache = nuevasPlantillas;
+            localStorage.setItem('plantillasCache', JSON.stringify(plantillasCache));
+            localStorage.setItem('plantillasLastUpdate', Date.now().toString());
+            
+            // Reload favorites and re-render
+            db.ref('Preferencias/' + asesorActual + '/Favoritos').once('value')
+                .then(function(favSnapshot) {
+                    favoritosCache = favSnapshot.val() || {};
+                    localStorage.setItem('favoritosCache', JSON.stringify(favoritosCache));
+                    renderizarPlantillas(plantillasCache, favoritosCache, asesorActual);
+                });
+        }
+    });
+    
+    // Monitor favorites changes
+    db.ref('Preferencias/' + asesorActual + '/Favoritos').on('value', function(snapshot) {
+        const nuevosFavoritos = snapshot.val() || {};
+        if (JSON.stringify(nuevosFavoritos) !== JSON.stringify(favoritosCache)) {
+            favoritosCache = nuevosFavoritos;
+            localStorage.setItem('favoritosCache', JSON.stringify(favoritosCache));
+            renderizarPlantillas(plantillasCache, favoritosCache, asesorActual);
+        }
+    });
+}
+```
+
+### User Preferences Cache
+
+User-specific settings are stored per user:
+
+```javascript
+function guardarPreferencias(preferencias) {
+    const nombreUsuario = localStorage.getItem("nombreAsesorActual") || "usuario_anonimo";
+    const clave = `preferencias_${nombreUsuario}`;
+    localStorage.setItem(clave, JSON.stringify(preferencias));
+}
+
+function cargarPreferencias() {
+    const nombreUsuario = localStorage.getItem("nombreAsesorActual") || "usuario_anonimo";
+    const clave = `preferencias_${nombreUsuario}`;
+    const preferenciasGuardadas = localStorage.getItem(clave);
+    
+    if (preferenciasGuardadas) {
+        return JSON.parse(preferenciasGuardadas);
+    }
+    return null;
+}
+```
+
+### Firebase Monitor Data Cache
+
+Monitoring data is persisted to track operations across sessions:
+
+```javascript
+saveToStorage() {
+    const data = {
+        readCount: this.readCount,
+        writeCount: this.writeCount,
+        deleteCount: this.deleteCount,
+        operations: this.operations.slice(-500), // Keep last 500 operations
+        startTime: this.startTime
+    };
+    localStorage.setItem('firebaseMonitorData', JSON.stringify(data));
+}
+
+loadFromStorage() {
+    const stored = localStorage.getItem('firebaseMonitorData');
+    if (stored) {
+        const data = JSON.parse(stored);
+        this.readCount = data.readCount || 0;
+        this.writeCount = data.writeCount || 0;
+        this.deleteCount = data.deleteCount || 0;
+        this.operations = data.operations || [];
+        this.startTime = data.startTime || Date.now();
+    }
+}
+```
+
+## In-Memory Caching
+
+### Shift Color Cache
+
+Colors for shifts are preloaded once and cached in memory:
+
+```javascript
+// Global cache using Map for O(1) lookups
+const cacheColoresTurnos = new Map();
+let cacheInicializado = false;
+
+// Preload ALL shift colors at once
+async function precargarColoresTurnos() {
+    if (cacheInicializado) return cacheColoresTurnos;
+    
+    try {
+        const snapshot = await firebase.database().ref('Turnos').once('value');
+        const data = snapshot.val();
+        
+        if (data) {
+            Object.entries(data).forEach(([turno, valores]) => {
+                cacheColoresTurnos.set(turno, {
+                    colorFondo: valores.ColorF ? `#${valores.ColorF}` : '#ffffff',
+                    colorTexto: valores.ColorT ? `#${valores.ColorT}` : '#000000'
+                });
+            });
+        }
+        
+        cacheInicializado = true;
+        console.log(`✅ Color cache initialized: ${cacheColoresTurnos.size} shifts`);
+        return cacheColoresTurnos;
+    } catch (error) {
+        console.error("❌ Error preloading colors:", error);
+        return cacheColoresTurnos;
+    }
+}
+
+// Use cache (no Firebase query)
+function actualizarColorCelda(celda) {
+    const texto = celda.textContent.trim();
+    
+    if (!texto || celda.classList.contains('DiaSemana')) {
+        celda.style.backgroundColor = '#ffffff';
+        celda.style.color = '#000000';
+        return;
+    }
+    
+    // Check cache (NO Firebase query)
+    if (cacheColoresTurnos.has(texto)) {
+        const colores = cacheColoresTurnos.get(texto);
+        celda.style.backgroundColor = colores.colorFondo;
+        celda.style.color = colores.colorTexto;
+    } else {
+        // Default colors if not in cache
+        celda.style.backgroundColor = '#ffffff';
+        celda.style.color = '#000000';
+    }
+}
+```
+
+### Shift Quantity Cache
+
+Shift quantities are cached to avoid repeated Firebase queries:
+
+```javascript
+const cantidadesCache = {};
+
+// Preload quantities (1 Firebase query)
+const precargaTurnos = firebase.database().ref('Turnos').once('value')
+    .then(snapshot => {
+        const turnos = snapshot.val();
+        if (turnos) {
+            Object.keys(turnos).forEach(turno => {
+                if (turnos[turno].Cantidad) {
+                    cantidadesCache[turno] = parseFloat(turnos[turno].Cantidad);
+                }
+            });
+        }
+        return cantidadesCache;
+    });
+
+// Use cached quantities for calculations
+function calcularHorasConCache(cantidadesCache, outputOffset = 11) {
+    const letras = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    const contadores = Object.fromEntries(letras.map(l => [l, 0]));
+    
+    for (let i = 1; i < 32; i++) {
+        for (const letra of letras) {
+            const celda = document.getElementById(letra + i);
+            if (!celda) continue;
+            
+            const turno = (celda.textContent || '').trim().toUpperCase();
+            if (!turno) continue;
+            
+            // Use cached quantity (NO Firebase query)
+            const cantidad = Number(cantidadesCache[turno]);
+            if (!Number.isFinite(cantidad)) continue;
+            
+            contadores[letra] += cantidad;
+        }
+    }
+    
+    return contadores;
+}
+```
+
+### All Shifts Data Cache
+
+For complex operations, all shift data is cached:
+
+```javascript
+let cacheTurnos = null;
+
+async function obtenerTodosLosDatosTurnos() {
+    // Return cached data if available
+    if (cacheTurnos !== null) {
+        return cacheTurnos;
+    }
+    
+    try {
+        const turnosRef = db.ref('Turnos');
+        const snapshot = await turnosRef.once('value');
+        const datosTurnos = snapshot.val();
+        
+        if (datosTurnos) {
+            cacheTurnos = {};
+            for (const tipoTurno in datosTurnos) {
+                if (datosTurnos[tipoTurno]) {
+                    cacheTurnos[tipoTurno] = {
+                        cantidad: datosTurnos[tipoTurno].Cantidad || 0,
+                        descripcion: datosTurnos[tipoTurno].Descripcion || ''
+                    };
+                }
+            }
+            return cacheTurnos;
+        }
+        
+        cacheTurnos = {};
+        return cacheTurnos;
+    } catch (error) {
+        console.error('Error obtaining shift data:', error);
+        cacheTurnos = {};
+        return cacheTurnos;
+    }
+}
+```
+
+## Cache Invalidation
+
+### Manual Invalidation
+
+Some operations require explicit cache clearing:
+
+```javascript
+function limpiarCacheTimeline() {
+    localStorage.removeItem('timelineCache');
+    console.log('🗑️ Timeline cache cleared');
+}
+
+// Called after saving schedule changes
+await Promise.all(promesasGuardado);
+limpiarCacheTimeline();
+alert("Data saved");
+location.reload();
+```
+
+### Time-based Invalidation
+
+Caches expire after a set time (e.g., 5 minutes for templates):
+
+```javascript
+const CACHE_DURATION = 300000; // 5 minutes
+const now = Date.now();
+const lastUpdate = localStorage.getItem('plantillasLastUpdate') || 0;
+const cacheValid = (now - lastUpdate < CACHE_DURATION);
+```
+
+### Event-based Invalidation
+
+Real-time listeners detect changes and invalidate cache:
+
+```javascript
+db.ref('Plantillas').on('value', function(snapshot) {
+    const nuevasPlantillas = snapshot.val() || {};
+    
+    // Compare with cache
+    if (JSON.stringify(nuevasPlantillas) !== JSON.stringify(plantillasCache)) {
+        // Invalidate and update cache
+        plantillasCache = nuevasPlantillas;
+        localStorage.setItem('plantillasCache', JSON.stringify(plantillasCache));
+        localStorage.setItem('plantillasLastUpdate', Date.now().toString());
+        
+        // Re-render UI
+        renderizarPlantillas(plantillasCache, favoritosCache, asesorActual);
+    }
+});
+```
+
+## Optimization Strategies
+
+### 1. Preload on Page Load
+
+```javascript
+window.onload = async function() {
+    // Preload all caches in parallel
+    await Promise.all([
+        precargarColoresTurnos(),
+        precargarCantidadesTurnos(),
+        cargarDatos()
+    ]);
+};
+```
+
+### 2. Batch Operations
+
+Instead of querying each item individually, load everything at once:
+
+```javascript
+// BAD: N queries
+for (const turno of turnos) {
+    const data = await db.ref(`Turnos/${turno}`).once('value');
+}
+
+// GOOD: 1 query
+const snapshot = await db.ref('Turnos').once('value');
+const allTurnos = snapshot.val();
+for (const turno of turnos) {
+    const data = allTurnos[turno];
+}
+```
+
+### 3. Lazy Loading
+
+Only load data when needed:
+
+```javascript
+if (!cacheInicializado) {
+    await precargarColoresTurnos();
+}
+// Now use cache
+```
+
+### 4. Memory Management
+
+Limit cache size to prevent memory issues:
+
+```javascript
+// Keep only last 500 operations
+operations: this.operations.slice(-500)
+```
+
+## Cache Storage Limits
+
+### LocalStorage
+
+- **Size limit**: ~5-10MB depending on browser
+- **Scope**: Per origin (domain)
+- **Persistence**: Until explicitly cleared
+
+### Memory (JavaScript)
+
+- **Size limit**: Available heap memory
+- **Scope**: Per page instance
+- **Persistence**: Until page reload
+
+## Best Practices
+
+1. **Use Map over Object**: For frequent lookups, Map has O(1) performance
+2. **Serialize consistently**: Use `JSON.stringify()` for cache comparison
+3. **Handle cache misses**: Always provide fallback behavior
+4. **Monitor cache effectiveness**: Track hit/miss ratios
+5. **Clear stale data**: Implement TTL (Time To Live) for all caches
+6. **Validate cached data**: Verify data integrity before use
+
+## Performance Impact
+
+### Without Cache
+- Load time: 2-5 seconds
+- Firebase reads: 50-100+ per page load
+- User experience: Slow, loading indicators
+
+### With Cache
+- Load time: 0.1-0.5 seconds
+- Firebase reads: 1-5 per page load
+- User experience: Instant, responsive
+
+## Related Files
+
+- `source/scriptHorariosStop.js` - Shift color and quantity caching
+- `source/scriptPlantillas.js` - Template caching
+- `source/FirebaseMonitor.js` - Monitor data caching

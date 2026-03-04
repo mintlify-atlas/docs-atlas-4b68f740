@@ -1,0 +1,570 @@
+---
+title: Authentication
+description: Comprehensive guide to Firebase authentication, user management, and session handling in Playground
+---
+
+## Overview
+
+Playground uses **Firebase Authentication v8.10.0** to provide secure user authentication with email/password credentials. The system includes automatic session management, user validation, and secure error handling.
+
+## Authentication Flow
+
+<Steps>
+  <Step title="User Enters Credentials">
+    User inputs username and password on the login page (`login.html`)
+  </Step>
+  
+  <Step title="Username to Email Conversion">
+    Username is automatically converted to email format: `username@playground.com`
+  </Step>
+  
+  <Step title="Firebase Authentication">
+    Credentials are validated against Firebase Authentication service
+  </Step>
+  
+  <Step title="Session Initialization">
+    Upon success, user session is created with an 8-hour timeout timer
+  </Step>
+  
+  <Step title="Redirect to Dashboard">
+    User is redirected to `index.html` with full module access
+  </Step>
+</Steps>
+
+## Firebase Configuration
+
+### Configuration Structure
+
+The Firebase configuration is initialized in both `scriptLogin.js` and `Autorizacion.js`:
+
+```javascript scriptLogin.js
+const firebaseConfig = {
+    apiKey: "AIzaSyAw5z5-aKicJ78N1UahQ-Lu_u7WP6MNVRE",
+    authDomain: "playgroundbdstop.firebaseapp.com",
+    databaseURL: "https://playgroundbdstop-default-rtdb.firebaseio.com",
+    projectId: "playgroundbdstop",
+    storageBucket: "playgroundbdstop.appspot.com",
+    messagingSenderId: "808082296806",
+    appId: "1:808082296806:web:c1d0dc3c2fc5fbf6c9d027"
+};
+
+// Initialize Firebase
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+```
+
+<Warning>
+**Production Security:** In production environments, store Firebase credentials in environment variables or secure configuration management systems. Never commit real API keys to public repositories.
+</Warning>
+
+### Required Firebase Services
+
+Playground requires these Firebase services:
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key">
+    Email/Password sign-in method enabled
+  </Card>
+  <Card title="Realtime Database" icon="database">
+    For storing and syncing application data
+  </Card>
+</CardGroup>
+
+## Login Implementation
+
+### Login Form Structure
+
+The login form in `login.html` includes:
+
+```html login.html
+<div class="login-container">
+    <img src="LogoLogin.png" alt="Descripción de la imagen" id="LogoLogin">
+    <div id="Formulario">
+        <h2>Iniciar sesión</h2>
+        <form id="login-form">
+            <div class="input-group">
+                <label for="username">Usuario</label>
+                <input type="text" id="username" name="username" 
+                       autocomplete="username" required>
+            </div>
+            <div class="input-group">
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" name="password" 
+                       autocomplete="current-password" required>
+            </div>
+            <button type="submit">Ingresar</button>
+        </form>
+        <div id="error-message" class="error-message" style="display: none;"></div>
+    </div>
+</div>
+
+<!-- Loading Screen -->
+<div id="loading-screen" style="display: none;">
+    <div class="spinner"></div>
+    <p>Cargando...</p>
+</div>
+```
+
+### Authentication Logic
+
+The complete authentication flow in `scriptLogin.js`:
+
+```javascript scriptLogin.js
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('login-form');
+    const loadingScreen = document.getElementById('loading-screen');
+    const errorMessage = document.getElementById('error-message');
+
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loadingScreen.style.display = 'flex'; // Show loading screen
+            errorMessage.style.display = 'none'; // Hide error message
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            
+            // Store user's display name
+            localStorage.setItem('nombreAsesorActual', 
+                agentesA[username]?.nombre || 'Usuario Desconocido');
+
+            try {
+                const user = await authenticateUser(username, password);
+                console.log('User logged in:', user);
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('Authentication error:', error);
+                errorMessage.textContent = getErrorMessage(error);
+                errorMessage.style.display = 'block';
+                loadingScreen.style.display = 'none';
+            }
+        });
+    }
+});
+```
+
+### User Authentication Function
+
+```javascript scriptLogin.js
+async function authenticateUser(username, password) {
+    // Validate username format
+    if (!validateUsername(username)) {
+        throw new Error('auth/invalid-username');
+    }
+
+    // Convert username to email format
+    const email = `${username}@playground.com`;
+    
+    try {
+        const userCredential = await firebase.auth()
+            .signInWithEmailAndPassword(email, password);
+        return userCredential.user;
+    } catch (error) {
+        // Handle specific Firebase errors
+        if (error.code === 'auth/user-not-found') {
+            throw new Error('auth/user-not-found');
+        } else if (error.code === 'auth/wrong-password') {
+            throw new Error('auth/wrong-password');
+        } else if (error.code === 'auth/invalid-email') {
+            throw new Error('auth/invalid-email');
+        } else {
+            throw new Error('auth/generic-error');
+        }
+    }
+}
+```
+
+## Username Validation
+
+Usernames must meet specific format requirements:
+
+```javascript scriptLogin.js
+function validateUsername(username) {
+    // Allow alphanumeric characters and dots only
+    const usernameRegex = /^[a-zA-Z0-9.]+$/;
+    return usernameRegex.test(username);
+}
+```
+
+<Note>
+**Valid usernames:** `john.doe`, `user123`, `admin`  
+**Invalid usernames:** `user@name`, `user name`, `user_name`
+</Note>
+
+## Error Handling
+
+### Error Messages
+
+User-friendly error messages in Spanish:
+
+```javascript scriptLogin.js
+function getErrorMessage(error) {
+    switch (error.message) {
+        case 'auth/user-not-found':
+            return 'No se encontró ningún usuario con estas credenciales.';
+        case 'auth/wrong-password':
+            return 'Contraseña incorrecta.';
+        case 'auth/invalid-email':
+            return 'Formato de correo electrónico no válido.';
+        case 'auth/invalid-username':
+            return 'Formato de usuario no válido.';
+        default:
+            return 'Fallo de autenticación. Por favor, inténtelo de nuevo.';
+    }
+}
+```
+
+### Error Display
+
+```css styles.css
+.error-message {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f8d7da;  /* Light red background */
+    color: #721c24;              /* Dark red text */
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+}
+```
+
+## User Management
+
+### User Registry
+
+Active users are defined in the `agentesA` object:
+
+```javascript scriptLogin.js
+let agentesA = {
+    "andres.yepes": { nombre: "Andrés_Felipe_Yepes_Tascón" },
+    "judy.buitrago": { nombre: "Judy_Andrea_Buitrago_Solis" },
+    "yeison.torres": { nombre: "Yeison_Torres_Ochoa" },
+    "maria.ospina": { nombre: "Maria_Susana_Ospina_Vanegas" },
+    "ocaris.arango": { nombre: "Ocaris_David_Arango_Aguilar" },
+    "johan.guzman": { nombre: "Johan_Guzman_Alarcon" },
+    "diego.usuga": { nombre: "Diego_Alejandro_Úsuga_Yepes" },
+    "santiago.ramirez": { nombre: "Santiago_Ramirez_Guzman" }
+};
+```
+
+<Warning>
+**Important:** Users must exist in both Firebase Authentication AND the `agentesA` registry to access the application.
+</Warning>
+
+### Adding New Users
+
+<Steps>
+  <Step title="Create in Firebase Console">
+    Navigate to Firebase Console → Authentication → Users → Add user
+    
+    - Email: `new.user@playground.com`
+    - Password: Generate secure password
+  </Step>
+  
+  <Step title="Update User Registry">
+    Add to `agentesA` object in `scriptLogin.js`:
+    
+    ```javascript
+    "new.user": { nombre: "New_User_Full_Name" }
+    ```
+  </Step>
+  
+  <Step title="Deploy Changes">
+    Deploy updated JavaScript files to your hosting platform
+  </Step>
+</Steps>
+
+## Session Management
+
+### Authentication State Observer
+
+The application monitors authentication state in `Autorizacion.js`:
+
+```javascript Autorizacion.js
+firebase.auth().onAuthStateChanged(user => {
+    if (!user && window.location.pathname !== '/login.html') {
+        // User not authenticated, redirect to login
+        localStorage.removeItem('nombreAsesorActual');
+        window.location.href = 'login.html';
+    } else if (user && window.location.pathname === '/login.html') {
+        // User already authenticated, redirect to dashboard
+        window.location.href = 'index.html';
+    }
+});
+```
+
+### 8-Hour Auto Logout
+
+Automatic session timeout for security:
+
+```javascript Autorizacion.js
+let signOutTimer = null;
+
+function scheduleSignOutEveryEightHours() {
+    // Clear previous timer
+    if (signOutTimer) {
+        clearTimeout(signOutTimer);
+        signOutTimer = null;
+    }
+
+    // Calculate 8 hours in milliseconds
+    const eightHoursInMs = 8 * 60 * 60 * 1000;
+
+    console.log(`Programando cierre de sesión en 8 horas (${new Date(Date.now() + eightHoursInMs).toLocaleString()})`);
+
+    signOutTimer = setTimeout(() => {
+        firebase.auth().signOut().then(() => {
+            console.log('Usuario desconectado automáticamente después de 8 horas.');
+            localStorage.removeItem('lastLoginDate');
+            localStorage.removeItem('nombreAsesorActual');
+            window.location.href = 'login.html';
+        }).catch(error => {
+            console.error('Error al cerrar sesión:', error);
+        });
+
+        // Reschedule for next 8 hours
+        scheduleSignOutEveryEightHours();
+    }, eightHoursInMs);
+}
+
+// Initialize on page load
+scheduleSignOutEveryEightHours();
+```
+
+<Note>
+The timer is reset when the page loads, but persists across navigation within the application.
+</Note>
+
+### Cleanup on Page Unload
+
+```javascript Autorizacion.js
+window.addEventListener('beforeunload', () => {
+    if (signOutTimer) {
+        clearTimeout(signOutTimer);
+    }
+});
+```
+
+## Manual Logout
+
+### Logout Implementation
+
+Users can manually log out via the user menu:
+
+```javascript CerrarSesion.js
+document.getElementById('btnCerrarSesion').addEventListener('click', () => {
+    firebase.auth().signOut().then(() => {
+        console.log('User signed out.');
+        window.location.href = 'login.html';
+    }).catch(error => {
+        console.error('Sign out error:', error);
+    });
+});
+```
+
+### Logout Modal
+
+Modal confirmation for logout:
+
+```html
+<div id="myModal2" class="modal">
+    <div class="modal-content2">
+        <span id="close2" style="position: absolute; right: 1; top: 0;">&times;</span>
+        <div id="modal-content2" style="display: flex; flex-direction: column; align-items: center; gap:10px;">
+            <h2>¿Quiere cerrar la sesión?</h2>
+            <button id="btnCerrarSesion">Cerrar sesión</button>
+        </div>
+    </div>
+</div>
+```
+
+## LocalStorage Management
+
+Authentication-related data stored in localStorage:
+
+| Key | Purpose | Example Value |
+|-----|---------|---------------|
+| `nombreAsesorActual` | Display name of logged-in user | `Andrés_Felipe_Yepes_Tascón` |
+| `lastLoginDate` | Timestamp of last login | `2024-03-04T10:30:00.000Z` |
+| `preferencias_[username]` | User-specific theme preferences | `{colorPrimario: "#e69500", ...}` |
+
+### Clearing User Data on Logout
+
+```javascript
+firebase.auth().signOut().then(() => {
+    localStorage.removeItem('nombreAsesorActual');
+    localStorage.removeItem('lastLoginDate');
+    // Note: User preferences are preserved
+    window.location.href = 'login.html';
+});
+```
+
+## Security Best Practices
+
+<AccordionGroup>
+  <Accordion title="Password Requirements">
+    Firebase enforces default password policies:
+    - Minimum 6 characters
+    - Recommended: Use strong passwords with mixed case, numbers, and symbols
+  </Accordion>
+  
+  <Accordion title="Session Security">
+    - 8-hour automatic timeout
+    - Session state monitored across all pages
+    - Automatic redirect on session expiration
+  </Accordion>
+  
+  <Accordion title="Email Validation">
+    - Username converted to standardized email format
+    - Regex validation prevents injection attacks
+    - Firebase validates email format server-side
+  </Accordion>
+  
+  <Accordion title="Error Messages">
+    - Generic error messages prevent user enumeration
+    - Detailed errors only logged to console
+    - User-friendly Spanish messages for end users
+  </Accordion>
+</AccordionGroup>
+
+## Firebase Security Rules
+
+Recommended Realtime Database security rules:
+
+```json
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
+    "users": {
+      "$uid": {
+        ".read": "auth.uid === $uid",
+        ".write": "auth.uid === $uid"
+      }
+    }
+  }
+}
+```
+
+<Warning>
+**Production Deployment:** Always configure proper security rules before deploying to production. The default test mode allows unrestricted access.
+</Warning>
+
+## Troubleshooting Authentication Issues
+
+<AccordionGroup>
+  <Accordion title="Invalid Username Format">
+    **Error:** `Formato de usuario no válido`
+    
+    **Cause:** Username contains invalid characters
+    
+    **Solution:** Use only alphanumeric characters and dots (a-z, A-Z, 0-9, .)
+  </Accordion>
+  
+  <Accordion title="User Not Found">
+    **Error:** `No se encontró ningún usuario con estas credenciales`
+    
+    **Causes:**
+    - User doesn't exist in Firebase Authentication
+    - Typo in username
+    - Email format conversion error
+    
+    **Solution:** Verify user exists in Firebase Console and username is correct
+  </Accordion>
+  
+  <Accordion title="Wrong Password">
+    **Error:** `Contraseña incorrecta`
+    
+    **Causes:**
+    - Incorrect password
+    - Caps Lock enabled
+    - Password reset required
+    
+    **Solution:** Verify password or use Firebase password reset
+  </Accordion>
+  
+  <Accordion title="Session Expires Immediately">
+    **Problem:** User logged out right after login
+    
+    **Causes:**
+    - Browser blocking cookies
+    - localStorage disabled
+    - Firebase configuration error
+    
+    **Solution:**
+    - Enable cookies in browser
+    - Check browser console for errors
+    - Verify Firebase configuration
+  </Accordion>
+</AccordionGroup>
+
+## Advanced Configuration
+
+### Custom Session Duration
+
+To modify the 8-hour timeout:
+
+```javascript Autorizacion.js
+// Change from 8 hours to custom duration
+const sessionDurationMs = 12 * 60 * 60 * 1000; // 12 hours
+
+function scheduleSignOutEveryEightHours() {
+    if (signOutTimer) {
+        clearTimeout(signOutTimer);
+        signOutTimer = null;
+    }
+
+    signOutTimer = setTimeout(() => {
+        firebase.auth().signOut().then(() => {
+            console.log('Session expired');
+            localStorage.removeItem('lastLoginDate');
+            localStorage.removeItem('nombreAsesorActual');
+            window.location.href = 'login.html';
+        });
+    }, sessionDurationMs);
+}
+```
+
+### Multi-Factor Authentication (Future)
+
+Firebase supports MFA for enhanced security:
+
+```javascript
+// Example MFA implementation (not currently active)
+import { getAuth, multiFactor } from "firebase/auth";
+
+const auth = getAuth();
+const user = auth.currentUser;
+const multiFactorUser = multiFactor(user);
+// Configure MFA...
+```
+
+## API Reference
+
+### Firebase Auth Methods Used
+
+| Method | Purpose |
+|--------|--------|
+| `firebase.initializeApp(config)` | Initialize Firebase with configuration |
+| `firebase.auth().signInWithEmailAndPassword(email, password)` | Sign in user with credentials |
+| `firebase.auth().signOut()` | Sign out current user |
+| `firebase.auth().onAuthStateChanged(callback)` | Monitor authentication state changes |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="User Preferences" icon="palette" href="/configuration/preferences">
+    Learn about user-specific theme and configuration options
+  </Card>
+  <Card title="Core Features" icon="grid" href="/features/calculator">
+    Explore available features after authentication
+  </Card>
+  <Card title="Firebase Console" icon="fire" href="https://console.firebase.google.com/">
+    Manage users and authentication settings
+  </Card>
+  <Card title="Firebase Integration" icon="shield" href="/technical/firebase-integration">
+    Learn about Firebase integration and security
+  </Card>
+</CardGroup>

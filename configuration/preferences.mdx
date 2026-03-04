@@ -1,0 +1,469 @@
+---
+title: 'Preferences Management'
+description: 'Manage background images, parallax effects, blur settings, and application preferences'
+icon: 'sliders'
+---
+
+## Overview
+
+Playground's preferences system goes beyond colors and typography to include background images, visual effects, and feature-specific settings that enhance your workspace experience.
+
+## Background Image Management
+
+Users can personalize their workspace with custom background images loaded via file upload or URL.
+
+### Upload Methods
+
+<Tabs>
+  <Tab title="File Upload">
+    Upload an image file from your local system:
+    
+    ```javascript
+    procesarImagenFondo(archivo) {
+      // Validate file type
+      if (!archivo.type.startsWith('image/')) {
+        this.mostrarNotificacion('Por favor seleccione un archivo de imagen válido', 'error');
+        return;
+      }
+      
+      // Check file size (max 5MB)
+      const tamañoMaximo = 5 * 1024 * 1024;
+      if (archivo.size > tamañoMaximo) {
+        this.mostrarNotificacion('La imagen es demasiado grande. Máximo 5MB permitido.', 'error');
+        return;
+      }
+      
+      // Read and convert to base64
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.configuracionActual.imagenFondo = e.target.result;
+        this.aplicarConfiguracion();
+        this.mostrarPreviewImagenActual();
+      };
+      reader.readAsDataURL(archivo);
+    }
+    ```
+    
+    <Warning>
+    Images are stored as base64 in localStorage. File size limit is 5MB to prevent storage quota issues.
+    </Warning>
+  </Tab>
+  
+  <Tab title="URL Loading">
+    Load an image directly from a URL:
+    
+    ```javascript
+    cargarImagenDesdeURL(url) {
+      const img = new Image();
+      
+      img.onload = () => {
+        this.configuracionActual.imagenFondo = url;
+        this.aplicarConfiguracion();
+        this.mostrarPreviewImagenActual();
+        this.mostrarNotificacion('Imagen cargada desde URL correctamente', 'exito');
+      };
+      
+      img.onerror = () => {
+        this.mostrarNotificacion(
+          'Error al cargar la imagen desde la URL. Verifica que sea válida y accesible.', 
+          'error'
+        );
+      };
+      
+      img.src = url;
+    }
+    ```
+    
+    <Tip>
+    URL images are not stored as base64, saving localStorage space. The URL is stored directly.
+    </Tip>
+  </Tab>
+</Tabs>
+
+### Image Application
+
+Background images are applied with CSS properties for optimal display:
+
+```javascript
+if (this.configuracionActual.imagenFondo) {
+  document.body.style.backgroundImage = `url(${this.configuracionActual.imagenFondo})`;
+  document.body.style.backgroundSize = 'cover';
+  document.body.style.backgroundPosition = 'center';
+  document.body.style.backgroundRepeat = 'no-repeat';
+  document.body.style.backgroundAttachment = 'fixed';
+}
+```
+
+### Image Preview
+
+A preview is displayed before saving:
+
+```javascript
+mostrarPreviewImagenActual() {
+  const previewContainer = document.getElementById('previewImagenFondo');
+  if (this.configuracionActual.imagenFondo) {
+    const img = document.createElement('img');
+    img.src = this.configuracionActual.imagenFondo;
+    img.style.maxWidth = '200px';
+    img.style.maxHeight = '150px';
+    img.style.objectFit = 'cover';
+    img.style.border = '2px solid var(--color-primario)';
+    img.style.borderRadius = '8px';
+    previewContainer.appendChild(img);
+  }
+}
+```
+
+## Parallax Effect
+
+<Info>
+The parallax effect creates a subtle 3D movement as the user moves their cursor, making the background feel more dynamic.
+</Info>
+
+### Enabling Parallax
+
+When the parallax checkbox is enabled:
+
+1. A special parallax container is created
+2. The background image is moved to the parallax layer
+3. Mouse movement listeners are attached
+
+```javascript
+if (this.configuracionActual.parallaxActivo) {
+  // Create parallax structure
+  const parallaxContainer = document.createElement('div');
+  parallaxContainer.className = 'parallax-background';
+  
+  const parallaxLayer = document.createElement('div');
+  parallaxLayer.className = 'parallax-layer';
+  parallaxLayer.style.backgroundImage = `url(${this.configuracionActual.imagenFondo})`;
+  
+  parallaxContainer.appendChild(parallaxLayer);
+  document.body.insertBefore(parallaxContainer, document.body.firstChild);
+  
+  // Activate parallax effect
+  this.activarEfectoParallax();
+}
+```
+
+### Parallax CSS Styles
+
+```css
+.parallax-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.parallax-layer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 110%;
+  height: 110%;
+  background-size: cover;
+  background-position: center;
+  transition: transform 0.1s ease-out;
+}
+```
+
+### Mouse Movement Handler
+
+```javascript
+activarEfectoParallax() {
+  this.parallaxListener = (e) => {
+    const parallaxLayer = document.querySelector('.parallax-layer');
+    if (!parallaxLayer) return;
+    
+    // Calculate mouse position as percentage
+    const mouseX = e.clientX / window.innerWidth;
+    const mouseY = e.clientY / window.innerHeight;
+    
+    // Calculate movement offset (max 20px)
+    const moveX = (mouseX - 0.5) * 20;
+    const moveY = (mouseY - 0.5) * 20;
+    
+    // Apply transform
+    parallaxLayer.style.transform = 
+      `translate(calc(-50% + ${moveX}px), calc(-50% + ${moveY}px))`;
+  };
+  
+  document.addEventListener('mousemove', this.parallaxListener);
+}
+```
+
+<Note>
+Movement is limited to ±20 pixels to create a subtle effect without being disorienting.
+</Note>
+
+## Blur Effect
+
+The blur setting applies a backdrop filter to navigation and footer elements, creating a frosted glass effect.
+
+### Blur Range
+
+- **Minimum**: 0% (no blur)
+- **Maximum**: 100% (maximum blur)
+- **Step**: 1%
+
+### Blur Application
+
+```javascript
+const blurPixels = this.configuracionActual.blurFondo / 10;
+const opacity = this.configuracionActual.blurFondo / 100;
+
+const nav = document.querySelector('nav');
+const footer = document.querySelector('footer');
+const header = document.querySelector('header');
+
+if (this.configuracionActual.imagenFondo) {
+  if (nav) {
+    nav.style.backdropFilter = `blur(${blurPixels}px)`;
+    nav.style.backgroundColor = `rgba(255, 255, 255, ${opacity * 0.2})`;
+  }
+  if (footer) {
+    footer.style.backdropFilter = `blur(${blurPixels}px)`;
+    footer.style.backgroundColor = `rgba(255, 255, 255, ${opacity * 0.2})`;
+  }
+  if (header) {
+    header.style.backdropFilter = `blur(${blurPixels}px)`;
+    header.style.backgroundColor = 'rgba(255, 255, 255, 0)';
+  }
+}
+```
+
+<Steps>
+  <Step title="Blur Calculation">
+    The blur percentage (0-100) is divided by 10 to get pixel value (0-10px).
+  </Step>
+  
+  <Step title="Opacity Calculation">
+    The same percentage is divided by 100 to get opacity (0-1), then multiplied by 0.2 for subtle transparency.
+  </Step>
+  
+  <Step title="Apply Backdrop Filter">
+    CSS `backdrop-filter: blur()` creates the frosted glass effect.
+  </Step>
+</Steps>
+
+### Blur Slider UI
+
+```html
+<div class="slider-container">
+  <label for="blur">Desenfoque del fondo</label>
+  <div class="slider-wrapper">
+    <input type="range" id="blur" min="0" max="100" value="0" step="1">
+    <span id="blurValue" class="slider-value">0%</span>
+  </div>
+</div>
+```
+
+The slider value updates in real-time:
+
+```javascript
+inputBlur.addEventListener('input', () => {
+  this.configuracionActual.blurFondo = parseInt(inputBlur.value);
+  blurValue.textContent = `${inputBlur.value}%`;
+  this.aplicarConfiguracion();
+});
+```
+
+## Feature Preferences
+
+Two toggle switches control application-specific features:
+
+### Vista Horarios Principal
+
+<AccordionGroup>
+  <Accordion title="What it does" icon="clock">
+    When enabled, the schedule page displays in timeline view by default instead of table view.
+  </Accordion>
+  
+  <Accordion title="Implementation" icon="code">
+    ```javascript
+    const switchVistaHorarios = document.getElementById('vistaHorariosPrincipal');
+    switchVistaHorarios.addEventListener('change', () => {
+      this.configuracionActual.vistaHorariosPrincipal = switchVistaHorarios.checked;
+    });
+    ```
+  </Accordion>
+  
+  <Accordion title="Storage" icon="database">
+    Stored as boolean in the preferences object under key `vistaHorariosPrincipal`.
+  </Accordion>
+</AccordionGroup>
+
+### Búsqueda en Plantillas
+
+<AccordionGroup>
+  <Accordion title="What it does" icon="magnifying-glass">
+    Enables deep content search within templates, allowing users to search inside template content rather than just titles.
+  </Accordion>
+  
+  <Accordion title="Implementation" icon="code">
+    ```javascript
+    const switchBusquedaPlantillas = document.getElementById('busquedaPlantillas');
+    switchBusquedaPlantillas.addEventListener('change', () => {
+      this.configuracionActual.busquedaPlantillas = switchBusquedaPlantillas.checked;
+    });
+    ```
+  </Accordion>
+  
+  <Accordion title="Storage" icon="database">
+    Stored as boolean in the preferences object under key `busquedaPlantillas`.
+  </Accordion>
+</AccordionGroup>
+
+### Toggle Switch Component
+
+The toggle switches use a custom CSS slider:
+
+```css
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: var(--color-secundario);
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+```
+
+## Removing Background Image
+
+Users can delete their background image:
+
+```javascript
+eliminarImagenFondo() {
+  const confirmacion = confirm('¿Está seguro que desea eliminar la imagen de fondo?');
+  
+  if (!confirmacion) return;
+  
+  // Clear from configuration
+  this.configuracionActual.imagenFondo = null;
+  this.aplicarConfiguracion();
+  this.mostrarPreviewImagenActual();
+  
+  // Clear file input
+  const inputImagen = document.getElementById('ImagenFondo');
+  if (inputImagen) inputImagen.value = '';
+  
+  // Update localStorage
+  const clave = this.generarClavePreferencias();
+  const preferencias = JSON.parse(localStorage.getItem(clave) || '{}');
+  preferencias.imagenFondo = null;
+  localStorage.setItem(clave, JSON.stringify(preferencias));
+  
+  this.mostrarNotificacion('Imagen de fondo eliminada correctamente', 'exito');
+}
+```
+
+## Metadata Tracking
+
+Each saved configuration includes metadata:
+
+```javascript
+const nuevasPreferencias = {
+  // ... all preference values ...
+  fechaGuardado: new Date().toISOString(),
+  usuario: this.nombreUsuario
+};
+```
+
+<ResponseField name="fechaGuardado" type="string">
+  ISO 8601 timestamp of when preferences were last saved
+</ResponseField>
+
+<ResponseField name="usuario" type="string">
+  Username who saved the preferences
+</ResponseField>
+
+## Storage Quota Management
+
+<Warning>
+localStorage has a typical limit of 5-10MB per domain. Large base64 images can quickly consume this space.
+</Warning>
+
+### Error Handling
+
+```javascript
+try {
+  localStorage.setItem(clave, JSON.stringify(nuevasPreferencias));
+  this.mostrarNotificacion('Configuraciones guardadas correctamente', 'exito');
+} catch (error) {
+  if (error.name === 'QuotaExceededError') {
+    this.mostrarNotificacion(
+      'Error: No hay suficiente espacio de almacenamiento. La imagen es demasiado grande.', 
+      'error'
+    );
+  } else {
+    this.mostrarNotificacion('Error al guardar configuraciones', 'error');
+  }
+}
+```
+
+### Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use URLs" icon="link">
+    When possible, use image URLs instead of file uploads to save storage space.
+  </Card>
+  
+  <Card title="Optimize Images" icon="image">
+    Compress images before uploading to reduce file size while maintaining quality.
+  </Card>
+  
+  <Card title="Monitor Size" icon="chart-simple">
+    The 5MB limit helps prevent storage quota issues.
+  </Card>
+  
+  <Card title="Export Regularly" icon="download">
+    Export your complete configuration as backup in case of storage issues.
+  </Card>
+</CardGroup>
+
+<Card title="Related Pages" icon="link">
+  - [Configuration Settings](/configuration/settings)
+  - [Theme Customization](/configuration/themes)
+</Card>

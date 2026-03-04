@@ -1,0 +1,354 @@
+---
+title: Tools & utilities
+description: Access discount calculators, document viewers, and file management tools
+---
+
+## Overview
+
+The Herramientas (Tools) module provides a collection of utility features designed to streamline your daily business operations. From financial calculators to document management, this module brings together essential tools in one convenient location.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Discount Calculator" icon="calculator">
+    Calculate discounts, final prices, and savings with multi-input support
+  </Card>
+  <Card title="Document Viewer" icon="file-pdf">
+    Access and view stored PDF documents from Firebase Storage
+  </Card>
+  <Card title="File Search" icon="magnifying-glass">
+    Quickly find documents with real-time search filtering
+  </Card>
+  <Card title="Price Calculations" icon="dollar-sign">
+    Compute original prices, discounts, and total amounts
+  </Card>
+</CardGroup>
+
+## Discount Calculator
+
+### How It Works
+
+The discount calculator supports multiple input scenarios and automatically calculates missing values:
+
+```javascript
+// Formatting numbers with thousand separators
+function formatearNumero(num) {
+    if (!num && num !== 0) return '';
+    let partes = num.toString().split(".");
+    partes[0] = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return partes.join(",");
+}
+
+// Cleaning formatted input
+function limpiarFormato(str) {
+    if (!str) return 0;
+    return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0;
+}
+```
+
+### Input Fields
+
+<AccordionGroup>
+  <Accordion title="Original Value (Valor Original)">
+    The initial price before any discount is applied. Enter this value if you know the starting price.
+  </Accordion>
+  
+  <Accordion title="Discount Percentage (Porcentaje)">
+    The discount rate to apply (e.g., 20 for 20% off). The calculator will compute the discount amount and final price.
+  </Accordion>
+  
+  <Accordion title="Discount Amount (Valor Descontado)">
+    The absolute amount being discounted. If you enter this, the calculator can determine the percentage and original value.
+  </Accordion>
+  
+  <Accordion title="Total to Pay (Total a Pagar)">
+    The final price after discount. Enter any two values, and the calculator will compute the rest.
+  </Accordion>
+</AccordionGroup>
+
+### Calculation Scenarios
+
+<Tabs>
+  <Tab title="Scenario 1: Know Original + Percentage">
+    **Input:**
+    - Original Value: $100,000
+    - Discount: 20%
+    
+    **Output:**
+    - Discount Amount: $20,000
+    - Total to Pay: $80,000
+  </Tab>
+  
+  <Tab title="Scenario 2: Know Final Price + Discount Amount">
+    **Input:**
+    - Discount Amount: $15,000
+    - Total to Pay: $60,000
+    
+    **Output:**
+    - Original Value: $75,000
+    - Discount: 20%
+  </Tab>
+  
+  <Tab title="Scenario 3: Know Final Price + Percentage">
+    **Input:**
+    - Total to Pay: $80,000
+    - Discount: 20%
+    
+    **Output:**
+    - Original Value: $100,000
+    - Discount Amount: $20,000
+  </Tab>
+</Tabs>
+
+### Interactive Calculation
+
+The calculator updates in real-time as you type:
+
+```javascript
+let camposActivos = [];
+let calculando = false;
+
+function calcular(campoActual) {
+    if (calculando) return;
+    calculando = true;
+    
+    // Get values from active fields
+    let valorOriginal = limpiarFormato(valorOriginalInput.value);
+    let porcentaje = limpiarFormato(porcentajeInput.value);
+    let valorDescontado = limpiarFormato(valorDescontadoInput.value);
+    let totalPagar = limpiarFormato(totalPagarInput.value);
+    
+    // Calculate missing values based on inputs
+    // ... calculation logic ...
+    
+    calculando = false;
+}
+```
+
+<Info>
+  The calculator prevents calculation loops by tracking which fields are being actively edited.
+</Info>
+
+## Document Viewer
+
+### Firebase Storage Integration
+
+The document viewer connects to Firebase Storage to retrieve and display uploaded PDF files:
+
+```javascript
+var storage = firebase.storage();
+var storageRef = storage.ref();
+
+firebase.auth().onAuthStateChanged(function (user) {
+    if (user) {
+        // List all files in storage
+        storageRef.listAll().then(function (result) {
+            result.items.forEach(function (imageRef) {
+                var fileName = imageRef.name;
+                
+                // Create clickable module for each file
+                var newDiv = document.createElement("div");
+                newDiv.className = "Modulo2";
+                
+                newDiv.onclick = function () {
+                    imageRef.getDownloadURL().then(function (url) {
+                        window.open(url, '_blank');
+                    }).catch(function (error) {
+                        console.log("Error al obtener la URL de descarga: ", error);
+                    });
+                };
+                
+                var newH2 = document.createElement("h2");
+                newH2.textContent = fileName;
+                newDiv.appendChild(newH2);
+                
+                document.getElementById("Gpdf").appendChild(newDiv);
+            });
+            
+            configurarBusqueda();
+        }).catch(function (error) {
+            console.log("Error al listar los archivos: ", error);
+        });
+    }
+});
+```
+
+### Document Access
+
+<Steps>
+  <Step title="Authentication check">
+    The viewer verifies you're logged in before displaying documents.
+  </Step>
+  
+  <Step title="Load file list">
+    All available PDFs are retrieved from Firebase Storage and displayed as clickable cards.
+  </Step>
+  
+  <Step title="Search and filter">
+    Use the search bar to filter documents by filename in real-time.
+  </Step>
+  
+  <Step title="View document">
+    Click any document card to open it in a new browser tab.
+  </Step>
+</Steps>
+
+## Search Functionality
+
+The integrated search system allows you to quickly find documents:
+
+```javascript
+function configurarBusqueda() {
+    var input = document.getElementById('busqueda3');
+    var clearButton = document.getElementById('Limpiar4');
+    var pdfs = Array.from(document.getElementsByClassName('Modulo2'));
+
+    input.addEventListener('keyup', function () {
+        var filter = input.value.toUpperCase();
+        pdfs.forEach(function (pdf) {
+            var title = pdf.getElementsByTagName('h2')[0];
+            if (title.innerHTML.toUpperCase().indexOf(filter) > -1) {
+                pdf.style.display = "";
+            } else {
+                pdf.style.display = "none";
+            }
+        });
+    });
+
+    clearButton.addEventListener('click', function () {
+        input.value = '';
+        pdfs.forEach(function (pdf) {
+            pdf.style.display = "";
+        });
+    });
+}
+```
+
+### Search Features
+
+- **Real-time filtering**: Results update as you type
+- **Case-insensitive**: Searches work regardless of capitalization  
+- **Clear button**: Quick reset to show all documents
+- **Visual feedback**: Hidden documents are removed from view
+
+## User Interface
+
+The Tools module features a clean, modular design:
+
+### Layout Structure
+
+```html
+<div class="GModulos">
+  <div class="columna">
+    <!-- Discount Calculator -->
+    <div id="GCalculadora">
+      <input id="inputValorOriginal" placeholder="Valor Original">
+      <input id="inputPorcentaje" placeholder="Porcentaje">
+      <input id="inputValorDescontado" placeholder="Valor Descontado">
+      <input id="inputTotalPagar" placeholder="Total a Pagar">
+      <button id="Limpiar">Limpiar</button>
+    </div>
+  </div>
+  
+  <div class="columna">
+    <!-- Document Viewer -->
+    <div id="Gpdf">
+      <input id="busqueda3" placeholder="Buscar documento...">
+      <button id="Limpiar4">Limpiar búsqueda</button>
+      <!-- Document cards generated dynamically -->
+    </div>
+  </div>
+</div>
+```
+
+### Responsive Design
+
+The layout adapts to different screen sizes:
+
+```css
+.GModulos {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    flex-wrap: nowrap;
+    align-items: start;
+}
+
+@media (max-width: 968px) {
+    .GModulos {
+        flex-direction: column;
+    }
+}
+```
+
+## Advanced Features
+
+### Number Formatting
+
+All currency inputs are automatically formatted with thousand separators for better readability:
+
+- Input: `100000`
+- Display: `100.000`
+
+### Input Validation
+
+The calculator validates input to prevent errors:
+
+- Accepts only numeric values
+- Handles decimal places
+- Prevents negative values
+- Auto-corrects invalid percentages (>100%)
+
+<Warning>
+  If you enter values that result in impossible calculations (e.g., discount amount > original value), the calculator will alert you to the error.
+</Warning>
+
+## Integration with Firebase
+
+The Tools module leverages Firebase for:
+
+1. **Authentication**: Only authenticated users can access documents
+2. **Storage**: PDFs are stored in Firebase Cloud Storage
+3. **Real-time Access**: Document list updates when new files are uploaded
+
+```javascript
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "playgroundbdstop.firebaseapp.com",
+    storageBucket: "playgroundbdstop.appspot.com"
+};
+
+firebase.initializeApp(firebaseConfig);
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Regular Updates" icon="arrows-rotate">
+    Clear the search field and refresh the document list periodically to see newly uploaded files
+  </Card>
+  
+  <Card title="Naming Conventions" icon="file-signature">
+    Use descriptive filenames for documents to make searching easier
+  </Card>
+  
+  <Card title="Calculator Accuracy" icon="check">
+    Always enter at least two values in the discount calculator for accurate results
+  </Card>
+  
+  <Card title="Browser Compatibility" icon="browser">
+    Use a modern browser with popup blocker disabled for viewing documents
+  </Card>
+</CardGroup>
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Firebase Integration" icon="fire" href="/technical/firebase-integration">
+    Learn how Firebase powers the Tools module
+  </Card>
+  
+  <Card title="User Guide" icon="book" href="/guides/data-export">
+    Export and share your calculations
+  </Card>
+</CardGroup>

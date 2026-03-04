@@ -1,0 +1,429 @@
+---
+title: Music player
+description: Integrated music player with playlist support
+---
+
+## Overview
+
+The Music Player is an integrated feature that allows users to play audio files while working in Playground. It includes playlist management, playback controls, and seamless integration across all modules.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Playlist Support" icon="list-music">
+    Organize and play multiple audio files in sequence
+  </Card>
+  <Card title="Persistent Controls" icon="circle-play">
+    Access player controls from any page in the application
+  </Card>
+  <Card title="Audio Formats" icon="file-audio">
+    Supports MP3, WAV, and other common audio formats
+  </Card>
+  <Card title="Volume Control" icon="volume-high">
+    Adjust volume and mute/unmute playback
+  </Card>
+</CardGroup>
+
+## Available Music
+
+The system includes a curated collection of audio files:
+
+<Tabs>
+  <Tab title="Anime Themes">
+    - **Chala Head Chala** - Dragon Ball Z Opening
+    - **Dragon Ball Opening** - Classic Dragon Ball theme
+    - **Corazon Encantado** - Inuyasha ending
+    - **Los Caballeros del Zodiaco** - Saint Seiya opening
+    - **Thundercats** - ThunderCats theme
+  </Tab>
+  
+  <Tab title="Music Tracks">
+    - **Angeles Fuimos** - Popular Spanish song
+    - **No Pude Olvidarte** - Romantic ballad
+    - **Traicionera** - Sebastian Yatra
+    - **Tokyo Drift** - Teriyaki Boyz
+  </Tab>
+</Tabs>
+
+## Music Player Interface
+
+The player is accessible from a dedicated music page:
+
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="Icono.ico">
+    <title>Musica</title>
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="titulo">
+                <h2>
+                    <a href="index.html">
+                        <img src="Icono.png" width="45" alt="Icono">
+                        Playground
+                    </a>
+                </h2>
+            </div>
+        </nav>
+    </header>
+    
+    <section>
+        <h1>Reproductor de Música</h1>
+        
+        <div id="playlist-container">
+            <!-- Playlist items loaded dynamically -->
+        </div>
+        
+        <div id="player-controls">
+            <button id="prevBtn">⏮️ Anterior</button>
+            <button id="playPauseBtn">▶️ Play</button>
+            <button id="nextBtn">Siguiente ⏭️</button>
+            <input type="range" id="volumeSlider" min="0" max="100" value="50">
+        </div>
+        
+        <audio id="audioPlayer" preload="auto"></audio>
+    </section>
+</body>
+</html>
+```
+
+## Implementation
+
+The music player is implemented in `scriptMusica.js`:
+
+```javascript
+const CANCIONES_DIR = 'Canciones/';
+const CANCIONES = [
+    'Angeles fuimos.mp3',
+    'Chala.mp3',
+    'Corazon encantado.mp3',
+    'Dragon Ball Opening.mp3',
+    'Los Caballeros del Zodiaco Opening.mp3',
+    'No Pude Olvidarte.mp3',
+    'Thundercats.mp3',
+    'Tokyo Drift.mp3',
+    'Traicionera.mp3'
+];
+
+let currentTrack = 0;
+const audioPlayer = document.getElementById('audioPlayer');
+
+// Load playlist
+function cargarPlaylist() {
+    const container = document.getElementById('playlist-container');
+    
+    CANCIONES.forEach((cancion, index) => {
+        const item = document.createElement('div');
+        item.className = 'playlist-item';
+        item.textContent = cancion.replace('.mp3', '');
+        item.onclick = () => reproducir(index);
+        
+        if (index === currentTrack) {
+            item.classList.add('active');
+        }
+        
+        container.appendChild(item);
+    });
+}
+
+// Play track
+function reproducir(index) {
+    currentTrack = index;
+    audioPlayer.src = CANCIONES_DIR + CANCIONES[index];
+    audioPlayer.play();
+    
+    // Update UI
+    document.querySelectorAll('.playlist-item').forEach((item, i) => {
+        item.classList.toggle('active', i === index);
+    });
+    
+    document.getElementById('playPauseBtn').textContent = '⏸️ Pause';
+}
+
+// Play/Pause toggle
+document.getElementById('playPauseBtn').addEventListener('click', () => {
+    if (audioPlayer.paused) {
+        audioPlayer.play();
+        document.getElementById('playPauseBtn').textContent = '⏸️ Pause';
+    } else {
+        audioPlayer.pause();
+        document.getElementById('playPauseBtn').textContent = '▶️ Play';
+    }
+});
+
+// Previous track
+document.getElementById('prevBtn').addEventListener('click', () => {
+    currentTrack = (currentTrack - 1 + CANCIONES.length) % CANCIONES.length;
+    reproducir(currentTrack);
+});
+
+// Next track
+document.getElementById('nextBtn').addEventListener('click', () => {
+    currentTrack = (currentTrack + 1) % CANCIONES.length;
+    reproducir(currentTrack);
+});
+
+// Volume control
+document.getElementById('volumeSlider').addEventListener('input', (e) => {
+    audioPlayer.volume = e.target.value / 100;
+});
+
+// Auto-play next track when current ends
+audioPlayer.addEventListener('ended', () => {
+    currentTrack = (currentTrack + 1) % CANCIONES.length;
+    reproducir(currentTrack);
+});
+
+// Initialize
+window.onload = () => {
+    cargarPlaylist();
+    audioPlayer.volume = 0.5; // 50% default volume
+};
+```
+
+## Player Controls
+
+### Playback Controls
+
+<AccordionGroup>
+  <Accordion title="Play/Pause">
+    Toggle between playing and paused states. The button icon updates to reflect the current state.
+  </Accordion>
+  
+  <Accordion title="Previous Track">
+    Skip to the previous song in the playlist. Wraps around to the last track if at the beginning.
+  </Accordion>
+  
+  <Accordion title="Next Track">
+    Skip to the next song in the playlist. Auto-advances when the current track ends.
+  </Accordion>
+  
+  <Accordion title="Volume Slider">
+    Adjust playback volume from 0% (mute) to 100% (maximum). Default is 50%.
+  </Accordion>
+</AccordionGroup>
+
+## Global Player Button
+
+Access the music player from any page via the floating button:
+
+```javascript
+const btnMostrarReproductor = document.getElementById('btnMostrarReproductor');
+
+if (btnMostrarReproductor) {
+    btnMostrarReproductor.addEventListener('click', () => {
+        window.location.href = 'Musica.html';
+    });
+}
+```
+
+The button appears on all pages:
+
+```html
+<button id="btnMostrarReproductor" 
+        style="display: flex; align-self: end; justify-self: end; border: 0;">
+    🎵
+</button>
+```
+
+## Styling
+
+The music player uses custom styles for a polished interface:
+
+```css
+#playlist-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.playlist-item {
+    padding: 15px;
+    background-color: var(--color-fondo);
+    border: 1px solid var(--color-borde);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.playlist-item:hover {
+    background-color: var(--color-primario);
+    color: var(--color-texto-fondo-primario);
+    transform: translateX(5px);
+}
+
+.playlist-item.active {
+    background-color: var(--color-secundario);
+    color: var(--color-texto-fondo-primario);
+    font-weight: bold;
+}
+
+#player-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    background-color: var(--color-fondo);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+#player-controls button {
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--color-primario);
+    color: var(--color-texto-fondo-primario);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#player-controls button:hover {
+    background-color: var(--color-secundario);
+}
+
+#volumeSlider {
+    flex: 1;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--color-borde);
+    outline: none;
+}
+```
+
+## Advanced Features
+
+### Autoplay on End
+
+The player automatically advances to the next track when the current song finishes:
+
+```javascript
+audioPlayer.addEventListener('ended', () => {
+    currentTrack = (currentTrack + 1) % CANCIONES.length;
+    reproducir(currentTrack);
+});
+```
+
+### Keyboard Shortcuts
+
+Add keyboard controls for enhanced usability:
+
+```javascript
+document.addEventListener('keydown', (e) => {
+    switch(e.key) {
+        case ' ': // Spacebar
+            e.preventDefault();
+            document.getElementById('playPauseBtn').click();
+            break;
+        case 'ArrowLeft':
+            document.getElementById('prevBtn').click();
+            break;
+        case 'ArrowRight':
+            document.getElementById('nextBtn').click();
+            break;
+    }
+});
+```
+
+### Progress Bar
+
+Add a visual progress indicator:
+
+```javascript
+const progressBar = document.getElementById('progressBar');
+
+audioPlayer.addEventListener('timeupdate', () => {
+    const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+    progressBar.value = progress;
+});
+
+progressBar.addEventListener('input', (e) => {
+    const time = (e.target.value / 100) * audioPlayer.duration;
+    audioPlayer.currentTime = time;
+});
+```
+
+## Integration with Other Features
+
+The music player integrates seamlessly with:
+
+- **Theme System**: Player styling adapts to selected theme
+- **Preferences**: Volume and last-played track saved to localStorage
+- **Notifications**: Sound notification system uses separate audio channel
+
+```javascript
+// Save preferences
+function guardarPreferencias() {
+    localStorage.setItem('musicVolume', audioPlayer.volume);
+    localStorage.setItem('lastTrack', currentTrack);
+}
+
+// Load preferences
+function cargarPreferencias() {
+    const savedVolume = localStorage.getItem('musicVolume');
+    const savedTrack = localStorage.getItem('lastTrack');
+    
+    if (savedVolume) {
+        audioPlayer.volume = parseFloat(savedVolume);
+        document.getElementById('volumeSlider').value = savedVolume * 100;
+    }
+    
+    if (savedTrack) {
+        currentTrack = parseInt(savedTrack);
+    }
+}
+```
+
+## Browser Compatibility
+
+The HTML5 `<audio>` element is supported in all modern browsers:
+
+- Chrome 4+
+- Firefox 3.5+
+- Safari 4+
+- Edge 12+
+- Opera 10.5+
+
+<Warning>
+  Some mobile browsers may restrict autoplay. Users may need to interact with the page before audio can play.
+</Warning>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="File Formats" icon="file-audio">
+    Use MP3 for best browser compatibility
+  </Card>
+  
+  <Card title="File Size" icon="weight-scale">
+    Keep audio files under 10MB for faster loading
+  </Card>
+  
+  <Card title="Volume Levels" icon="volume-high">
+    Normalize audio levels across tracks for consistent playback
+  </Card>
+  
+  <Card title="Metadata" icon="tags">
+    Include ID3 tags for proper track identification
+  </Card>
+</CardGroup>
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Configuration" icon="gear" href="/configuration/preferences">
+    Customize music player preferences
+  </Card>
+  
+  <Card title="Themes" icon="palette" href="/configuration/themes">
+    Adjust player styling with themes
+  </Card>
+</CardGroup>

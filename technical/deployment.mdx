@@ -1,0 +1,353 @@
+---
+title: 'Deployment Guide'
+description: 'Learn how to deploy the Playground application using Netlify'
+---
+
+## Overview
+
+The Playground project is configured for seamless deployment on Netlify, a modern hosting platform for static sites and serverless functions. The deployment is automated through Git integration and configured via the `netlify.toml` file.
+
+## Netlify Configuration
+
+The project uses the following Netlify configuration:
+
+```toml
+[build]
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+[functions.enviar-notificaciones] 
+  schedule = "0 */1 * * *"
+```
+
+### Configuration Breakdown
+
+#### Build Settings
+
+- **functions**: Specifies that serverless functions are located in the `netlify/functions` directory
+
+#### Functions Settings
+
+- **node_bundler**: Uses `esbuild` for fast, efficient bundling of Node.js functions
+  - esbuild is significantly faster than webpack
+  - Automatically handles dependencies and tree-shaking
+  - No additional configuration needed
+
+#### Scheduled Functions
+
+- **enviar-notificaciones**: A scheduled function that runs hourly
+  - **Schedule**: `0 */1 * * *` (every hour at minute 0)
+  - **Purpose**: Sends daily reminder notifications to users about their work schedules and lunch assignments
+
+<Info>
+The cron expression `0 */1 * * *` means the function runs at the start of every hour (00:00, 01:00, 02:00, etc.).
+</Info>
+
+## Deployment Methods
+
+### Method 1: Automatic Deployment via Git
+
+The recommended approach is connecting your repository to Netlify for automatic deployments.
+
+#### Initial Setup
+
+1. **Create a Netlify Account**
+   - Go to [netlify.com](https://www.netlify.com/)
+   - Sign up or log in with your Git provider (GitHub, GitLab, or Bitbucket)
+
+2. **Import Repository**
+   - Click "Add new site" → "Import an existing project"
+   - Connect your Git provider
+   - Select the Playground repository
+
+3. **Configure Build Settings**
+   - **Base directory**: Leave empty (root of repository)
+   - **Build command**: Leave empty (no build step required)
+   - **Publish directory**: `.` or leave empty (static files in root)
+
+4. **Add Environment Variables**
+   
+   Navigate to Site settings → Environment variables and add:
+   
+   ```
+   FIREBASE_SERVICE_ACCOUNT = {"type":"service_account","project_id":"...","private_key_id":"...","private_key":"...","client_email":"...","client_id":"...","auth_uri":"...","token_uri":"...","auth_provider_x509_cert_url":"...","client_x509_cert_url":"..."}
+   
+   FIREBASE_DATABASE_URL = https://your-project.firebaseio.com
+   ```
+
+<Warning>
+Never commit Firebase credentials to your repository. Always use environment variables.
+</Warning>
+
+5. **Deploy**
+   - Click "Deploy site"
+   - Netlify will build and deploy your site
+   - You'll receive a unique URL (e.g., `https://random-name-123.netlify.app`)
+
+#### Continuous Deployment
+
+Once connected:
+
+- **Production**: Every push to `main` branch triggers a production deployment
+- **Preview**: Pull requests automatically get preview deployments
+- **Rollback**: Easy one-click rollback to previous deployments in Netlify dashboard
+
+### Method 2: Manual Deployment via Netlify CLI
+
+For manual deployments or testing:
+
+#### 1. Install Netlify CLI
+
+```bash
+npm install -g netlify-cli
+```
+
+#### 2. Login to Netlify
+
+```bash
+netlify login
+```
+
+This opens a browser window for authentication.
+
+#### 3. Initialize Site (First Time)
+
+```bash
+netlify init
+```
+
+Follow the prompts to create a new site or link to an existing one.
+
+#### 4. Deploy
+
+**Draft Deploy** (for testing):
+
+```bash
+netlify deploy
+```
+
+**Production Deploy**:
+
+```bash
+netlify deploy --prod
+```
+
+### Method 3: Drag and Drop
+
+For quick deployments without Git:
+
+1. Go to [app.netlify.com/drop](https://app.netlify.com/drop)
+2. Drag your project folder into the drop zone
+3. Netlify deploys instantly
+
+<Note>
+This method doesn't support serverless functions or scheduled functions. Use Git integration or CLI for full functionality.
+</Note>
+
+## Scheduled Functions
+
+### Notification Function
+
+The `enviar-notificaciones` function is the core scheduled task:
+
+**Purpose**: Sends personalized notifications to users about:
+- Tomorrow's work shift schedule
+- Shift time ranges
+- Lunch availability and timing
+
+**Schedule**: Runs every hour to check if any users need notifications at that time
+
+**How it works**:
+1. Retrieves current time in Colombia timezone
+2. Queries Firebase for users with notifications enabled
+3. For each user, checks if their scheduled notification time matches
+4. Fetches user's shift data from Firebase Realtime Database
+5. Determines lunch assignment based on shift
+6. Sends personalized push notification via Firebase Cloud Messaging
+
+**Key Features**:
+- Time zone aware (America/Bogota)
+- Handles multiple shift types (T1-T6, TP, TSAN)
+- Maps shift variations to lunch schedules
+- Graceful error handling per user
+- Detailed logging for debugging
+
+### Cron Schedule Syntax
+
+The cron expression format used by Netlify:
+
+```
+┌───────────── minute (0 - 59)
+│ ┌───────────── hour (0 - 23)
+│ │ ┌───────────── day of month (1 - 31)
+│ │ │ ┌───────────── month (1 - 12)
+│ │ │ │ ┌───────────── day of week (0 - 6) (Sunday to Saturday)
+│ │ │ │ │
+│ │ │ │ │
+* * * * *
+```
+
+**Current schedule**: `0 */1 * * *`
+- Minute: `0` (at the start of the hour)
+- Hour: `*/1` (every hour)
+- Day of month: `*` (every day)
+- Month: `*` (every month)
+- Day of week: `*` (every day of the week)
+
+**Other schedule examples**:
+
+```bash
+# Every day at 6 AM
+0 6 * * *
+
+# Every 30 minutes
+*/30 * * * *
+
+# Every weekday at 9 AM
+0 9 * * 1-5
+
+# Every hour between 8 AM and 6 PM
+0 8-18 * * *
+```
+
+## Custom Domain Setup
+
+### Adding a Custom Domain
+
+1. Go to Site settings → Domain management
+2. Click "Add custom domain"
+3. Enter your domain name
+4. Follow DNS configuration instructions
+
+### DNS Configuration
+
+Add these records to your DNS provider:
+
+**Option 1: CNAME (subdomain)**
+```
+www.yourdomain.com CNAME your-site.netlify.app
+```
+
+**Option 2: A Record (apex domain)**
+```
+yourdomain.com A 75.2.60.5
+```
+
+<Info>
+Netlify automatically provisions and renews SSL certificates for custom domains via Let's Encrypt.
+</Info>
+
+## Environment Variables
+
+### Required Variables
+
+| Variable | Description | Example |
+|----------|-------------|----------|
+| `FIREBASE_SERVICE_ACCOUNT` | Firebase service account JSON | `{"type":"service_account",...}` |
+| `FIREBASE_DATABASE_URL` | Firebase Realtime Database URL | `https://project.firebaseio.com` |
+
+### Setting Environment Variables
+
+**Via Netlify Dashboard**:
+1. Site settings → Environment variables
+2. Click "Add a variable"
+3. Enter key and value
+4. Choose scope (All scopes recommended)
+
+**Via Netlify CLI**:
+```bash
+netlify env:set FIREBASE_SERVICE_ACCOUNT '{"type":"service_account",...}'
+netlify env:set FIREBASE_DATABASE_URL "https://project.firebaseio.com"
+```
+
+## Deployment Checklist
+
+Before deploying to production:
+
+- [ ] All environment variables configured
+- [ ] Firebase project set up with correct permissions
+- [ ] Authentication rules configured in Firebase
+- [ ] Database security rules reviewed
+- [ ] Service account has necessary Firebase permissions
+- [ ] Scheduled function tested locally with `netlify dev`
+- [ ] Push notification permissions granted in browser
+- [ ] Custom domain configured (if applicable)
+- [ ] SSL certificate active
+
+## Monitoring and Logs
+
+### Function Logs
+
+View logs for scheduled functions:
+
+1. Netlify Dashboard → Functions
+2. Click on `enviar-notificaciones`
+3. View execution logs and errors
+
+**Via CLI**:
+```bash
+netlify functions:list
+netlify logs:function enviar-notificaciones
+```
+
+### Deploy Logs
+
+View build and deploy logs:
+
+1. Netlify Dashboard → Deploys
+2. Click on any deploy
+3. View detailed logs
+
+## Performance Optimization
+
+### Asset Optimization
+
+Netlify automatically:
+- Compresses images
+- Minifies CSS and JavaScript
+- Enables HTTP/2
+- Provides global CDN distribution
+
+### Function Optimization
+
+The `esbuild` bundler provides:
+- Fast cold starts
+- Efficient code splitting
+- Tree shaking for smaller bundles
+- Native ESM support
+
+## Troubleshooting
+
+### Function Execution Errors
+
+**Problem**: Scheduled function fails
+
+**Check**:
+1. Environment variables are correctly set
+2. Firebase service account has admin permissions
+3. Database rules allow server-side access
+4. Function logs for specific error messages
+
+### Build Failures
+
+**Problem**: Deployment fails
+
+**Check**:
+1. All dependencies in `package.json`
+2. No syntax errors in JavaScript files
+3. File paths are correct (case-sensitive on Netlify)
+
+### Firebase Connection Issues
+
+**Problem**: Cannot connect to Firebase from functions
+
+**Solution**: Verify `FIREBASE_SERVICE_ACCOUNT` is valid JSON and includes all required fields.
+
+## Next Steps
+
+- Review [local development setup](/technical/local-setup)
+- Understand [project dependencies](/technical/dependencies)
+- Set up Firebase Analytics for usage tracking
+- Configure Netlify Forms for user feedback

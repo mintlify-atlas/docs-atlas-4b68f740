@@ -1,0 +1,382 @@
+---
+title: 'Shift Tracking'
+description: 'Comprehensive guide to managing employee shifts, schedules, and payment calculations'
+---
+
+## Overview
+
+The Playground system provides robust shift tracking capabilities, allowing administrators to manage work schedules, calculate hours, and track shift assignments across the organization.
+
+## Shift Management
+
+### Shift Configuration
+
+Shifts are stored in Firebase with the following properties:
+
+- **ID**: Unique identifier (e.g., T1, T2, T3)
+- **Apertura** (Opening): Start time in 12-hour format
+- **Cierre** (Closing): End time in 12-hour format
+- **Cantidad** (Amount): Monetary value or hour count
+- **ColorF** (Background Color): Hex color for visual identification
+- **ColorT** (Text Color): Hex color for text display
+- **Descripción**: Shift description or notes
+
+### Creating New Shifts
+
+Administrators can create shifts through the modal interface:
+
+```javascript
+function agregarNuevoTurno() {
+    const turnoId = document.getElementById("nuevo-id").value.trim();
+    
+    if (!turnoId) {
+        mostrarAlerta("Debe ingresar un ID para el turno", "danger");
+        return;
+    }
+    
+    const horaApertura = document.getElementById("nuevo-apertura-hora").value;
+    const periodoApertura = document.getElementById("nuevo-apertura-periodo").value;
+    const horaCierre = document.getElementById("nuevo-cierre-hora").value;
+    const periodoCierre = document.getElementById("nuevo-cierre-periodo").value;
+    
+    const apertura = `${horaApertura} ${periodoApertura}`;
+    const cierre = `${horaCierre} ${periodoCierre}`;
+    const cantidad = document.getElementById("nuevo-cantidad").value;
+    
+    const nuevoTurno = {
+        Apertura: apertura,
+        Cantidad: parseFloat(cantidad),
+        Cierre: cierre,
+        ColorF: colorF,
+        ColorT: colorT,
+        Descripcion: document.getElementById("nuevo-descripcion").value
+    };
+    
+    turnosRef.child(turnoId).set(nuevoTurno);
+}
+```
+
+<Info>
+Shift times are stored in 12-hour format with AM/PM designations for clarity.
+</Info>
+
+## Shift Types
+
+The system supports various shift types:
+
+<CardGroup cols={3}>
+  <Card title="Standard Shifts" icon="clock">
+    Regular work shifts with defined start and end times (T1-T6)
+  </Card>
+  <Card title="All-Day Events" icon="calendar-day">
+    Special shifts marked as 12:00 AM to 12:00 AM with custom descriptions
+  </Card>
+  <Card title="Day Off" icon="bed">
+    Rest days marked with "D" designation
+  </Card>
+  <Card title="Sala Shifts" icon="door-open">
+    Special room assignments marked as "TSA"
+  </Card>
+  <Card title="No Shift" icon="minus">
+    Work without shift marked as "TSN"
+  </Card>
+  <Card title="Vacations" icon="umbrella-beach">
+    Days off marked as "DV" (Descanso/Vacaciones)
+  </Card>
+</CardGroup>
+
+## Shift Converter
+
+The shift converter translates shift codes into readable time ranges:
+
+### Converting Shift Codes
+
+```javascript
+async function convertirTurnos() {
+    const textoTurnos = document.getElementById("turnos").value.trim();
+    const listaTurnos = textoTurnos.split(/\s+/);
+    
+    const promesas = listaTurnos.map(turno => 
+        obtenerDatosTurno(turno).then(datosTurno => {
+            if (!datosTurno) {
+                return "Horario no definido";
+            }
+            
+            // Check for all-day shifts
+            if (datosTurno.apertura === "12:00 AM" && 
+                datosTurno.cierre === "12:00 AM") {
+                return datosTurno.descripcion;
+            } else {
+                return `${datosTurno.apertura} a ${datosTurno.cierre}`;
+            }
+        })
+    );
+    
+    const resultados = await Promise.all(promesas);
+    document.getElementById("resultado").innerHTML = resultados.join("<br>");
+}
+```
+
+<Steps>
+  <Step title="Enter Shift Codes">
+    Input shift codes separated by spaces (e.g., "T1 T2 T3")
+  </Step>
+  <Step title="Convert">
+    Click the convert button to query Firebase for shift details
+  </Step>
+  <Step title="View Results">
+    See the time ranges displayed for each shift code
+  </Step>
+  <Step title="Copy Results">
+    Use the copy button to save results to clipboard
+  </Step>
+</Steps>
+
+## Payment Calculation
+
+Calculate monetary values for shifts worked:
+
+```javascript
+async function calcularValorTurno() {
+    const textoTurnos = document.getElementById("turnos").value.trim();
+    const listaTurnos = textoTurnos.split(/\s+/);
+    
+    const promesas = listaTurnos.map(turno => 
+        obtenerDatosTurno(turno).then(datosTurno => {
+            return datosTurno ? datosTurno.cantidad : null;
+        })
+    );
+    
+    const resultados = await Promise.all(promesas);
+    
+    let suma = 0;
+    const resultadosFormateados = resultados.map(valor => {
+        if (typeof valor === 'number' && !isNaN(valor)) {
+            suma += valor;
+            return valor.toString().replace(/\./g, ',');
+        } else {
+            return "Valor no definido";
+        }
+    });
+    
+    const resultadoFinal = resultadosFormateados.join("<br>") + 
+        `<br><br><strong>Total:</strong> ${suma.toLocaleString('es-CO')}`;
+    
+    document.getElementById("valor").innerHTML = resultadoFinal;
+}
+```
+
+<Warning>
+Ensure all shifts have a "Cantidad" value configured for accurate payment calculations.
+</Warning>
+
+## Schedule Management
+
+### Loading Schedule Data
+
+Schedules are loaded from Firebase with efficient caching:
+
+```javascript
+async function cargarDatos() {
+    const mesSeleccionado = document.getElementById('Mes').selectedIndex + 1;
+    const añoSeleccionado = document.getElementById('Año').value;
+    const celdas = document.querySelectorAll('#Table td');
+    
+    // Preload shift colors (1 query)
+    await precargarColoresTurnos();
+    
+    // Preload shift amounts (1 query)
+    const cantidadesCache = {};
+    const snapshot = await firebase.database().ref('Turnos').once('value');
+    const turnos = snapshot.val();
+    
+    Object.keys(turnos).forEach(turno => {
+        if (turnos[turno].Cantidad) {
+            cantidadesCache[turno] = parseFloat(turnos[turno].Cantidad);
+        }
+    });
+    
+    // Load cell data
+    const promesas = Array.from(celdas).map(celda => {
+        const idCelda = celda.cellIndex + 1;
+        const nombreFila = celda.parentNode.cells[0].textContent.trim();
+        
+        return firebase.database()
+            .ref(`celdas/${nombreFila}/${idCelda}/${añoSeleccionado}/${mesSeleccionado}`)
+            .once('value')
+            .then(snapshot => {
+                const data = snapshot.val();
+                if (data) {
+                    celda.textContent = data.texto;
+                    actualizarColorCelda(celda);
+                }
+            });
+    });
+    
+    await Promise.all(promesas);
+    calcularHorasConCache(cantidadesCache);
+}
+```
+
+### Hour Calculation
+
+Calculate total hours worked per employee:
+
+```javascript
+function calcularHorasConCache(cantidadesCache) {
+    const letras = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    const contadores = Object.fromEntries(letras.map(l => [l, 0]));
+    
+    for (let i = 1; i < 32; i++) {
+        for (const letra of letras) {
+            const celda = document.getElementById(letra + i);
+            if (!celda) continue;
+            
+            const turno = (celda.textContent || '').trim().toUpperCase();
+            if (!turno) continue;
+            
+            const cantidad = Number(cantidadesCache[turno]);
+            if (!Number.isFinite(cantidad)) continue;
+            
+            contadores[letra] += cantidad;
+        }
+    }
+    
+    // Display totals
+    letras.forEach((letra, idx) => {
+        const out = document.getElementById(String(11 + idx));
+        if (out) out.textContent = contadores[letra];
+    });
+    
+    return contadores;
+}
+```
+
+## Lunch Break Management
+
+The system automatically assigns lunch break times based on work shifts:
+
+### Lunch Shift Assignments
+
+```javascript
+const horariosAlmuerzo = {
+    'T1': { apertura: '11:00 AM', cierre: '12:00 PM' },
+    'T2': { apertura: '11:45 AM', cierre: '12:45 PM' },
+    'T3': { apertura: '12:30 PM', cierre: '1:30 PM' },
+    'T4': { apertura: '1:15 PM', cierre: '2:15 PM' },
+    'T5': { apertura: '2:00 PM', cierre: '3:00 PM' },
+    'T6': { apertura: '2:45 PM', cierre: '3:45 PM' },
+    'TSA': { apertura: '12:00 PM', cierre: '12:30 PM' }
+};
+
+function calcularTurnosAlmuerzoInteligente(trabajadoresConTurno) {
+    const distribucion = {};
+    const turnosAlmuerzoDisponibles = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6'];
+    let indiceAlmuerzo = 0;
+    
+    trabajadoresConTurno.forEach(trabajador => {
+        if (indiceAlmuerzo < turnosAlmuerzoDisponibles.length) {
+            const turnoAlmuerzoAsignado = turnosAlmuerzoDisponibles[indiceAlmuerzo];
+            distribucion[trabajador.nombre] = {
+                turnoTrabajo: trabajador.turnoBase,
+                turnoAlmuerzo: turnoAlmuerzoAsignado,
+                turnoCompleto: trabajador.turnoCompleto
+            };
+            indiceAlmuerzo++;
+        }
+    });
+    
+    return distribucion;
+}
+```
+
+## Shift Closing Template
+
+Generate standardized shift closing messages:
+
+```javascript
+document.getElementById("btnCierre").addEventListener("click", function () {
+    const saludo = document.getElementById("Saludo").value;
+    const cierre = document.getElementById("Cierre").value;
+    const llamadas = document.getElementById("Llamadas").value;
+    const casos = document.getElementById("Casos").value;
+    const minuta = document.getElementById("Minuta").value;
+    
+    let saludoTexto;
+    if (saludo === "días") {
+        saludoTexto = "Buenos días";
+    } else {
+        saludoTexto = `Buenas ${saludo}`;
+    }
+    
+    const texto = `${saludoTexto}, ${cierre} ${llamadas} llamadas y ${casos} casos, ${minuta} se hace la minuta, VIP y correos listos.`;
+    
+    navigator.clipboard.writeText(texto);
+    alert("Texto copiado al portapapeles: " + texto);
+});
+```
+
+## Visual Color Coding
+
+Shifts are color-coded for easy identification:
+
+```javascript
+function actualizarColorCelda(celda) {
+    const texto = celda.textContent.trim();
+    
+    if (celda.classList.contains('DiaSemana')) {
+        return;
+    }
+    
+    if (!texto) {
+        celda.style.backgroundColor = '#ffffff';
+        celda.style.color = '#000000';
+        return;
+    }
+    
+    if (cacheColoresTurnos.has(texto)) {
+        const colores = cacheColoresTurnos.get(texto);
+        celda.style.backgroundColor = colores.colorFondo;
+        celda.style.color = colores.colorTexto;
+    } else {
+        celda.style.backgroundColor = '#ffffff';
+        celda.style.color = '#000000';
+    }
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Shift Configuration">
+    - Use consistent naming conventions (T1, T2, etc.)
+    - Set clear start and end times
+    - Configure payment amounts accurately
+    - Choose contrasting colors for visibility
+  </Accordion>
+  
+  <Accordion title="Schedule Updates">
+    - Verify changes before saving
+    - Use the preview feature to review schedules
+    - Document shift changes in the history log
+    - Notify affected employees of schedule changes
+  </Accordion>
+  
+  <Accordion title="Hour Tracking">
+    - Review calculated hours regularly
+    - Reconcile totals with payroll systems
+    - Account for holidays and special events
+    - Export data for backup and reporting
+  </Accordion>
+</AccordionGroup>
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="User Management" icon="users" href="/guides/user-management">
+    Manage employee accounts and permissions
+  </Card>
+  <Card title="Data Export" icon="download" href="/guides/data-export">
+    Export schedules and reports in various formats
+  </Card>
+</CardGroup>

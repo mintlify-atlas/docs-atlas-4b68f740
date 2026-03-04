@@ -1,0 +1,456 @@
+---
+title: Creating Templates
+description: Create, manage, and share reusable message templates for efficient communication
+---
+
+## Overview
+
+The Templates module allows you to create, organize, and quickly access pre-written message templates. This guide covers everything you need to know about working with templates.
+
+## Understanding Template Types
+
+The system supports two types of templates:
+
+<CardGroup cols={2}>
+  <Card title="Predefined Templates" icon="lock">
+    **Type 1**: System-wide templates available to all users. These are pre-configured and cannot be deleted by regular users.
+  </Card>
+  
+  <Card title="Custom Templates" icon="pencil">
+    **Type 2**: User-created templates. You can create, edit, and delete your own custom templates.
+  </Card>
+</CardGroup>
+
+## Creating a New Template
+
+<Steps>
+  <Step title="Open Creation Modal">
+    Click the "Create New Template" button to open the template creation form.
+  </Step>
+  
+  <Step title="Enter Template Name">
+    Type a unique name for your template. The system validates in real-time:
+    - ✅ Shows "Nombre válido" if the name is available
+    - ❌ Shows error if name already exists or contains invalid characters
+    
+    <Warning>
+    Template names must be unique across all templates in the system.
+    </Warning>
+  </Step>
+  
+  <Step title="Configure Opening Message">
+    Enter the opening message content in the "Apertura" field. This is the message shown when the interaction starts.
+    
+    You can include:
+    - Formatted text
+    - Line breaks
+    - Special characters
+  </Step>
+  
+  <Step title="Configure Closing Message">
+    Enter the closing message content in the "Cierre" field. This is the message shown when concluding the interaction.
+  </Step>
+  
+  <Step title="Select a Color (Optional)">
+    Choose a color to visually identify your template:
+    - Blue, Green, Red, Purple
+    - Yellow, Pink, Cyan, Orange
+    
+    Colors help you quickly identify templates in the list.
+  </Step>
+  
+  <Step title="Save Template">
+    Click "Crear Plantilla" to save. The system will:
+    - Validate the template name
+    - Save to Firebase under `Plantillas/`
+    - Add your username as the creator
+    - Update local cache
+    - Refresh the templates list
+  </Step>
+</Steps>
+
+## Using Templates
+
+### Opening a Template
+
+<Steps>
+  <Step title="Find Your Template">
+    Browse or search for the template you need in the templates list.
+  </Step>
+  
+  <Step title="Click to Open">
+    Click on the template card to open the detail modal.
+  </Step>
+  
+  <Step title="View Content">
+    The modal displays:
+    - Template name
+    - Opening message with automatic greeting
+    - Closing message with automatic greeting
+    
+    The system automatically adds context-aware greetings:
+    ```javascript
+    var currentHour = new Date().getHours();
+    if (currentHour < 12) {
+        saludo = "Buenos días";
+    } else if (currentHour < 18) {
+        saludo = "Buenas tardes";
+    } else {
+        saludo = "Buenas noches";
+    }
+    ```
+  </Step>
+</Steps>
+
+### Copying Template Text
+
+<Steps>
+  <Step title="Open Template">
+    Click on a template to open the detail view.
+  </Step>
+  
+  <Step title="Copy Opening or Closing">
+    Click either:
+    - "Copiar texto" under the Opening section
+    - "Copiar texto" under the Closing section
+  </Step>
+  
+  <Step title="Paste into Your Application">
+    The formatted text is now in your clipboard, ready to paste into:
+    - Email clients
+    - Chat applications
+    - CRM systems
+    - Any other text field
+  </Step>
+</Steps>
+
+<Tip>
+If you enable the clipboard timer (via the toggle switch), copied text automatically clears from your clipboard after 15 seconds for security.
+</Tip>
+
+## Managing Templates
+
+### Editing a Template
+
+<Steps>
+  <Step title="Locate Your Template">
+    Find a template you created (marked with your username).
+  </Step>
+  
+  <Step title="Open Options Menu">
+    Click the three-dot menu (⋮) in the top-right corner of the template card.
+  </Step>
+  
+  <Step title="Select Edit">
+    Click "✏️ Editar" from the dropdown menu.
+  </Step>
+  
+  <Step title="Modify Content">
+    Update any of the following:
+    - Template name
+    - Opening message
+    - Closing message
+    - Color
+  </Step>
+  
+  <Step title="Save Changes">
+    Click "Actualizar Plantilla" to save your changes.
+    
+    <Note>
+    If you change the template name, the old template is deleted and a new one is created with the new name.
+    </Note>
+  </Step>
+</Steps>
+
+### Deleting a Template
+
+<Steps>
+  <Step title="Open Options Menu">
+    Click the three-dot menu (⋮) on your template card.
+  </Step>
+  
+  <Step title="Select Delete">
+    Click "❌ Eliminar" from the dropdown menu.
+  </Step>
+  
+  <Step title="Confirm Deletion">
+    Confirm the deletion when prompted.
+    
+    <Warning>
+    Deletion is permanent and cannot be undone. The template is removed from Firebase immediately.
+    </Warning>
+  </Step>
+</Steps>
+
+<Note>
+You can only edit or delete templates you created. Predefined templates and templates created by others are read-only.
+</Note>
+
+## Favorites System
+
+### Adding to Favorites
+
+<Steps>
+  <Step title="Find the Template">
+    Locate any template you use frequently.
+  </Step>
+  
+  <Step title="Click the Star">
+    Click the ☆ (empty star) icon on the template card.
+  </Step>
+  
+  <Step title="View in Favorites Section">
+    The template now appears in the "Favoritos" section at the top of the page with a ★ (filled star) icon.
+  </Step>
+</Steps>
+
+### Removing from Favorites
+
+<Steps>
+  <Step title="Click the Star">
+    Click the ★ (filled star) icon on any favorited template.
+  </Step>
+  
+  <Step title="Confirm Removal">
+    The template is removed from favorites but remains in the main templates list.
+  </Step>
+</Steps>
+
+<Tip>
+Favorites are saved per user in `Preferencias/{username}/Favoritos` and sync across all your sessions.
+</Tip>
+
+## Color Customization
+
+<Steps>
+  <Step title="Click Color Picker">
+    Click the 🔘 icon on any template card.
+  </Step>
+  
+  <Step title="Select Color">
+    Choose from the available color palette:
+    - Blue: `#3b82f6`
+    - Green: `#10b981`
+    - Red: `#ef4444`
+    - Purple: `#a855f7`
+    - Yellow: `#f59e0b`
+    - Pink: `#ec4899`
+    - Cyan: `#06b6d4`
+    - Orange: `#f97316`
+  </Step>
+  
+  <Step title="Apply or Reset">
+    - Click a color to apply it immediately
+    - Click "Restablecer color" to remove custom color
+    
+    Colors are saved to local storage and persist across sessions.
+  </Step>
+</Steps>
+
+## Searching Templates
+
+### Basic Search
+
+<Steps>
+  <Step title="Enter Search Term">
+    Type in the search box to filter templates by name.
+  </Step>
+  
+  <Step title="View Results">
+    Templates matching your search appear instantly.
+    
+    The search is case-insensitive and accent-insensitive:
+    ```javascript
+    function normalizarTexto(texto) {
+        return texto.normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase();
+    }
+    ```
+  </Step>
+</Steps>
+
+### Advanced Content Search
+
+If enabled in preferences, you can search template content:
+
+<Steps>
+  <Step title="Enable Content Search">
+    Check the preferences to enable searching within template content (opening and closing messages).
+  </Step>
+  
+  <Step title="Search">
+    Enter your search term. Results show:
+    - Templates with matching names
+    - Templates with matching content (marked with 📄 indicator)
+  </Step>
+  
+  <Step title="Review Results">
+    Content matches show a preview of the matching text with highlighting.
+  </Step>
+</Steps>
+
+<Warning>
+Content search can be slower for large template libraries. Enable it only if needed.
+</Warning>
+
+## Filtering Templates
+
+<Steps>
+  <Step title="Open Filter Dropdown">
+    Use the type filter dropdown to show specific template types.
+  </Step>
+  
+  <Step title="Select Filter">
+    Choose from:
+    - All templates
+    - Predefined only (Type 1)
+    - Custom only (Type 2)
+  </Step>
+  
+  <Step title="View Filtered Results">
+    The list updates to show only templates matching your filter.
+  </Step>
+</Steps>
+
+## Exporting Templates
+
+<Steps>
+  <Step title="Click Export Button">
+    Click "Exportar Todas" to export all templates to Excel.
+  </Step>
+  
+  <Step title="Wait for Processing">
+    The system generates an Excel file containing:
+    - Template names
+    - Type
+    - Creator
+    - Opening message (HTML stripped)
+    - Closing message (HTML stripped)
+  </Step>
+  
+  <Step title="Download File">
+    The file downloads automatically as `plantillas_export.xlsx`.
+  </Step>
+</Steps>
+
+## Advanced Features
+
+### Template Caching
+
+The system uses intelligent caching to improve performance:
+
+- **Local Storage**: Templates are cached in browser local storage
+- **5-Minute Validity**: Cache refreshes every 5 minutes
+- **Background Sync**: Changes sync in real-time via Firebase listeners
+
+<Tip>
+If you don't see recent changes, try refreshing the page to force a cache update.
+</Tip>
+
+### Real-Time Collaboration
+
+The system supports real-time updates:
+
+```javascript
+// Firebase listeners detect changes automatically
+db.ref('Plantillas').on('value', function (snapshot) {
+    const nuevasPlantillas = snapshot.val() || {};
+    if (JSON.stringify(nuevasPlantillas) !== JSON.stringify(plantillasCache)) {
+        // Update cache and re-render
+    }
+});
+```
+
+- Changes made by other users appear automatically
+- Your favorites sync across all your devices
+- No manual refresh needed
+
+### Current Duty Manager Display
+
+The templates page includes a live display of the current duty manager:
+
+<Steps>
+  <Step title="Automatic Detection">
+    The system:
+    - Reads today's schedules
+    - Checks shift times
+    - Determines who is currently on duty
+  </Step>
+  
+  <Step title="Updates Every Minute">
+    The duty manager display refreshes every 60 seconds to stay current.
+  </Step>
+  
+  <Step title="Shows Shift Details">
+    Displays:
+    - Manager name
+    - Shift code
+    - Time range
+  </Step>
+</Steps>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Descriptive Names" icon="tag">
+    Give templates clear, searchable names that describe their purpose.
+  </Card>
+  
+  <Card title="Organize with Colors" icon="palette">
+    Use colors to group related templates (e.g., all customer service templates in blue).
+  </Card>
+  
+  <Card title="Favorite Your Most Used" icon="star">
+    Star frequently-used templates for quick access.
+  </Card>
+  
+  <Card title="Keep Content Updated" icon="arrows-rotate">
+    Regularly review and update template content to ensure accuracy.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Template not saving">
+    **Solution**: Check that:
+    - The template name is unique
+    - You have internet connectivity
+    - The name doesn't contain special characters
+    
+    Look for validation messages below the name field.
+  </Accordion>
+  
+  <Accordion title="Cannot edit or delete template">
+    **Solution**: You can only edit/delete templates you created. Check that:
+    - The template shows your username as creator
+    - You're logged in with the correct account
+    - The template is Type 2 (custom)
+  </Accordion>
+  
+  <Accordion title="Favorites not syncing">
+    **Solution**: Favorites are stored per user. Ensure:
+    - You're logged in with the same account on all devices
+    - Firebase has connectivity
+    - Local storage is enabled in your browser
+  </Accordion>
+  
+  <Accordion title="Copied text has wrong format">
+    **Solution**: The system strips HTML tags when copying. If you need formatted text:
+    - Copy manually from the preview
+    - Or paste into a rich text editor that preserves formatting
+  </Accordion>
+</AccordionGroup>
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Managing Schedules" icon="calendar" href="/guides/managing-schedules">
+    Learn about shift scheduling
+  </Card>
+  
+  <Card title="Working with Procedures" icon="list-check" href="/guides/working-with-procedures">
+    Access documented procedures
+  </Card>
+</CardGroup>

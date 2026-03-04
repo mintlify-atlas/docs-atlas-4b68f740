@@ -1,0 +1,237 @@
+---
+title: 'Configuration Settings'
+description: 'Understand the complete configuration system and how to customize your Playground workspace'
+icon: 'gear'
+---
+
+## Overview
+
+The Playground configuration system allows users to fully customize their workspace appearance and behavior. All settings are stored in localStorage and are unique to each user, identified by the key `preferencias_${nombreUsuario}`.
+
+## Configuration Structure
+
+The configuration object includes the following properties:
+
+<CodeGroup>
+```javascript Default Configuration
+{
+  primario: '#e69500',
+  secundario: '#e69500',
+  colorFondo: '#FFFFFF',
+  colorTexto: '#000000ff',
+  colorTextoFondoPrimario: null,
+  fuente: 'Nunito, sans-serif',
+  imagenFondo: null,
+  parallaxActivo: false,
+  blurFondo: 0,
+  usarColorTextoFondoPrimario: false,
+  vistaHorariosPrincipal: false,
+  busquedaPlantillas: false
+}
+```
+</CodeGroup>
+
+## localStorage Storage
+
+<Info>
+Configurations are stored per user using the naming convention `preferencias_${nombreUsuario}`, where `nombreUsuario` is retrieved from `localStorage.getItem("nombreAsesorActual")`.
+</Info>
+
+### Accessing User Preferences
+
+The system retrieves the current user's name and generates a unique key:
+
+```javascript
+obtenerNombreUsuario() {
+  return localStorage.getItem("nombreAsesorActual") || "usuario_anonimo";
+}
+
+generarClavePreferencias() {
+  return `preferencias_${this.nombreUsuario}`;
+}
+```
+
+### Saving Preferences
+
+When users save their configuration:
+
+1. Input values are collected from the configuration form
+2. A preferences object is created with current values
+3. The object is stringified and saved to localStorage
+4. CSS variables are updated to reflect changes immediately
+
+```javascript
+const nuevasPreferencias = {
+  colorPrimario: inputPrimario.value,
+  colorSecundario: inputSecundario.value,
+  colorFondo: inputColorFondo.value,
+  colorTexto: inputColorTexto.value,
+  colorTextoFondoPrimario: inputColorTextoFondoPrimario.value,
+  usarColorTextoFondoPrimario: checkboxColorTextoFondoPrimario.checked,
+  fuente: selectFuente.value,
+  imagenFondo: this.configuracionActual.imagenFondo,
+  parallaxActivo: checkboxParallax.checked,
+  blurFondo: parseInt(inputBlur.value),
+  vistaHorariosPrincipal: switchVistaHorarios.checked,
+  busquedaPlantillas: switchBusquedaPlantillas.checked,
+  fechaGuardado: new Date().toISOString(),
+  usuario: this.nombreUsuario
+};
+```
+
+## CSS Variables Application
+
+<Tip>
+The configuration system uses CSS custom properties (variables) to apply theme changes instantly across the entire application.
+</Tip>
+
+### Applied CSS Variables
+
+When configuration is loaded or changed, these CSS variables are updated:
+
+- `--color-primario` - Primary brand color
+- `--color-secundario` - Secondary accent color
+- `--color-fondo` - Background color
+- `--color-texto` - Text color
+- `--color-texto-fondo-primario` - Text color for primary backgrounds
+- `--font-family` - Typography font family
+
+```javascript
+aplicarConfiguracion() {
+  const root = document.documentElement;
+  root.style.setProperty('--color-primario', this.configuracionActual.primario);
+  root.style.setProperty('--color-secundario', this.configuracionActual.secundario);
+  root.style.setProperty('--color-fondo', this.configuracionActual.colorFondo);
+  root.style.setProperty('--color-texto', this.configuracionActual.colorTexto);
+  root.style.setProperty('--font-family', this.configuracionActual.fuente);
+  
+  if (this.configuracionActual.usarColorTextoFondoPrimario) {
+    root.style.setProperty('--color-texto-fondo-primario', 
+      this.configuracionActual.colorTextoFondoPrimario);
+  }
+}
+```
+
+## Global Preferences Application
+
+<Note>
+The `PreferenciasGlobales.js` file must be included on all pages to automatically apply user preferences when the page loads.
+</Note>
+
+### Automatic Loading
+
+Preferences are applied in three scenarios:
+
+1. **On page load** - When `DOMContentLoaded` fires
+2. **On storage change** - When localStorage is modified in another tab
+3. **On user change** - When the logged-in user switches (checked every 1000ms)
+
+```javascript
+// Apply on DOM ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', aplicarPreferenciasColores);
+} else {
+  aplicarPreferenciasColores();
+}
+
+// Listen for storage changes across tabs
+window.addEventListener('storage', function (e) {
+  if (e.key === 'nombreAsesorActual' || e.key?.startsWith('preferencias_')) {
+    aplicarPreferenciasColores();
+  }
+});
+```
+
+## User Preferences
+
+Two application-specific preferences control UI behavior:
+
+<AccordionGroup>
+  <Accordion title="Vista Horarios Principal" icon="clock">
+    Controls whether the schedule view displays in timeline mode.
+    
+    - **Storage Key**: `vistaHorariosPrincipal`
+    - **Type**: Boolean
+    - **Default**: `false`
+  </Accordion>
+  
+  <Accordion title="Búsqueda en Plantillas" icon="magnifying-glass">
+    Enables content search within templates.
+    
+    - **Storage Key**: `busquedaPlantillas`
+    - **Type**: Boolean
+    - **Default**: `false`
+  </Accordion>
+</AccordionGroup>
+
+## Import/Export Configuration
+
+### Export Theme (Colors Only)
+
+Share your color scheme with others using a compact base64-encoded string:
+
+```javascript
+copiarTemaAlPortapapeles() {
+  const temaCompacto = {
+    p: this.configuracionActual.primario,
+    s: this.configuracionActual.secundario,
+    f: this.configuracionActual.colorFondo,
+    t: this.configuracionActual.colorTexto,
+    tp: this.configuracionActual.colorTextoFondoPrimario,
+    utp: this.configuracionActual.usarColorTextoFondoPrimario,
+    fn: this.configuracionActual.fuente,
+    b: this.configuracionActual.blurFondo
+  };
+  
+  const jsonString = JSON.stringify(temaCompacto);
+  const base64 = btoa(unescape(encodeURIComponent(jsonString)));
+  const codigoTema = `THEME:${base64}`;
+}
+```
+
+<Warning>
+Theme codes only include colors and typography. Background images are not included in the THEME export.
+</Warning>
+
+### Export Complete Configuration
+
+Download a JSON file containing all preferences including the background image (base64):
+
+```javascript
+exportarConfiguracionCompleta() {
+  const clave = this.generarClavePreferencias();
+  const preferencias = localStorage.getItem(clave);
+  
+  if (preferencias) {
+    const blob = new Blob([preferencias], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tema_completo_${this.nombreUsuario}_${new Date().getTime()}.json`;
+    a.click();
+  }
+}
+```
+
+## Reset to Defaults
+
+Users can restore default settings at any time:
+
+```javascript
+restablecerPreferencias() {
+  const confirmacion = confirm(
+    '¿Está seguro que desea restablecer la configuración a los valores por defecto?'
+  );
+  
+  if (confirmacion) {
+    this.configuracionActual = { ...this.configuracionDefecto };
+    this.aplicarConfiguracion();
+    localStorage.removeItem(this.generarClavePreferencias());
+  }
+}
+```
+
+<Card title="Related Pages" icon="link">
+  - [Theme Customization](/configuration/themes)
+  - [Preferences Management](/configuration/preferences)
+</Card>

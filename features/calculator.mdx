@@ -1,0 +1,224 @@
+---
+title: Grade calculator
+description: Calculate academic grades with multiple evaluation periods and percentage distributions
+---
+
+## Overview
+
+The Grade Calculator is a powerful tool designed to help students and educators calculate academic grades across multiple evaluation periods. It supports weighted grade components, percentage distributions, and provides both absolute and relative grade calculations.
+
+<Card title="Quick Access" icon="calculator" href="/guides/using-calculator">
+  See the complete user guide for step-by-step instructions
+</Card>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Multiple Evaluations" icon="list">
+    Add unlimited grade components with individual percentages
+  </Card>
+  <Card title="Weighted Calculations" icon="percent">
+    Each grade is weighted by its percentage contribution
+  </Card>
+  <Card title="Target Score Planning" icon="bullseye">
+    Calculate what you need to achieve your target grade
+  </Card>
+  <Card title="Color-Coded Results" icon="palette">
+    Visual feedback based on performance thresholds
+  </Card>
+</CardGroup>
+
+## How It Works
+
+The calculator uses a weighted average formula to compute your final grade:
+
+```javascript
+// Grade calculation formula
+let notaFinal = 0;
+let porcentajeTotal = 0;
+
+for (let i = 0; i < notas.length; i++) {
+    notaFinal += notas[i].valor * notas[i].porcentaje / 100;
+    porcentajeTotal += notas[i].porcentaje;
+}
+```
+
+## Grade Types
+
+### Absolute Grade (Nota Relativa)
+
+The grade calculated relative to the percentage of coursework completed:
+
+```javascript
+let notaRelativa = (notaFinal / porcentajeTotal) * 100;
+```
+
+**Example**: If you've completed 60% of the course with an average of 4.2, your absolute grade is **4.2/5.0**.
+
+### Relative Grade (Nota Final)
+
+The grade calculated relative to the entire course (100%):
+
+```javascript
+let notaFinal = notaFinal; // Already weighted
+```
+
+**Example**: Same scenario as above, your relative grade is **2.5/5.0** (60% of 4.2).
+
+<Info>
+  The **Absolute Grade** shows your current performance, while the **Relative Grade** shows your standing relative to the entire course.
+</Info>
+
+## User Interface
+
+### Input Fields
+
+<Steps>
+  <Step title="Set minimum passing grade">
+    Enter the minimum grade required to pass the course (e.g., 3.0 on a 5.0 scale).
+  </Step>
+  
+  <Step title="Add grade components">
+    Click **Agregar nota** to add evaluation periods. Each component requires:
+    - Grade value (0-100 or 0-5.0 depending on scale)
+    - Percentage weight (must total ≤100%)
+  </Step>
+  
+  <Step title="Calculate results">
+    Click **Calcular nota final** to see your absolute grade, relative grade, and required scores.
+  </Step>
+</Steps>
+
+### Visual Feedback
+
+The calculator provides color-coded visual feedback:
+
+| Grade Range | Color | Meaning |
+|-------------|-------|----------|
+| ≥ Minimum | Green | Passing |
+| < Minimum | Red | Failing |
+| Target calculation | Blue | Required score |
+
+## Advanced Features
+
+### Target Grade Calculation
+
+If you haven't completed all coursework, the calculator shows what grade you need on remaining evaluations to achieve your target:
+
+```javascript
+if (porcentajeTotal < 100) {
+    let porcentajeFaltante = 100 - porcentajeTotal;
+    let notaNecesaria = (notaMinima - notaFinal) / porcentajeFaltante * 100;
+    
+    document.getElementById('notaFaltante').textContent = 
+        `Necesitas ${notaNecesaria.toFixed(2)} en el ${porcentajeFaltante}% restante`;
+}
+```
+
+### Validation Rules
+
+<AccordionGroup>
+  <Accordion title="Percentage validation">
+    The sum of all percentages cannot exceed 100%. If you try to add a component that would exceed this limit, you'll receive an error message:
+    
+    ```javascript
+    if (porcentajeTotal > 100) {
+        alert('El porcentaje total no puede exceder 100%');
+        return;
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Grade value validation">
+    Grade values must be within the valid range (0-5 for Colombian grading scale, 0-100 for percentage-based systems).
+  </Accordion>
+  
+  <Accordion title="Required fields">
+    Both grade value and percentage fields are required for each component.
+  </Accordion>
+</AccordionGroup>
+
+## Mathematical Foundation
+
+The calculator implements standard weighted average calculations:
+
+### Weighted Average Formula
+
+$$
+\text{Final Grade} = \sum_{i=1}^{n} (\text{Grade}_i \times \frac{\text{Weight}_i}{100})
+$$
+
+### Required Score Formula
+
+$$
+\text{Required Grade} = \frac{\text{Target Grade} - \text{Current Weighted Grade}}{\text{Remaining Percentage}} \times 100
+$$
+
+## Integration with Other Features
+
+The calculator integrates seamlessly with Playground's other features:
+
+- **Theme System**: Respects your configured color scheme
+- **Preferences**: Saves your preferred grading scale
+- **Export**: Results can be copied to templates for sharing
+
+<CardGroup cols={2}>
+  <Card title="User Guide" icon="book-open" href="/guides/using-calculator">
+    Step-by-step guide with examples
+  </Card>
+  <Card title="Theme Settings" icon="palette" href="/configuration/themes">
+    Customize the calculator's appearance
+  </Card>
+</CardGroup>
+
+## Accessibility Features
+
+- **Keyboard Navigation**: Tab through input fields sequentially
+- **Screen Reader Support**: All inputs have proper labels
+- **High Contrast**: Color-coded results are also labeled with text
+- **Responsive Design**: Works on mobile and desktop devices
+
+## Browser Compatibility
+
+The calculator uses modern JavaScript (ES6+) and is compatible with:
+
+- Chrome 90+
+- Firefox 88+
+- Safari 14+
+- Edge 90+
+
+<Warning>
+  Internet Explorer is not supported. Please use a modern browser for the best experience.
+</Warning>
+
+## Technical Implementation
+
+The calculator is implemented in `scriptCalculadora.js` and uses:
+
+- **Math.js**: For advanced mathematical operations
+- **DOM Manipulation**: Dynamic form generation
+- **LocalStorage**: For saving user preferences
+
+```javascript
+// Example: Adding a new grade component
+document.getElementById('agregarNota').addEventListener('click', function() {
+    let notasDiv = document.getElementById('notas');
+    let nuevaNota = document.createElement('div');
+    nuevaNota.innerHTML = `
+        <input type="number" placeholder="Nota" class="nota">
+        <input type="number" placeholder="Porcentaje" class="porcentaje">
+    `;
+    notasDiv.appendChild(nuevaNota);
+});
+```
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Introduction" icon="home" href="/introduction">
+    Learn about all Playground features
+  </Card>
+  <Card title="Getting Started" icon="rocket" href="/getting-started">
+    Set up your Playground account
+  </Card>
+</CardGroup>

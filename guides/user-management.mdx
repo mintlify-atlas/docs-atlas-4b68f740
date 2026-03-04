@@ -1,0 +1,219 @@
+---
+title: 'User Management'
+description: 'Manage user accounts, permissions, and authentication in the Playground administration system'
+---
+
+## Overview
+
+The Playground system includes comprehensive user management capabilities for administrators to control access, manage team members, and track user activity across the platform.
+
+## User Authentication
+
+Administrators authenticate using password-protected access to modify schedules and system data.
+
+### Authentication System
+
+The system uses Firebase Authentication with password-based login:
+
+```javascript
+let agentes = {
+    Johan_Guzman_Alarcon: {
+        nombre: "Johan Guzman Alarcon",
+        contraseña: ""
+    },
+    Andrés_Felipe_Yepes_Tascón: {
+        nombre: "Andrés Felipe Yepes Tascón",
+        contraseña: ""
+    },
+    // Additional users...
+};
+
+// Password validation
+for (let agente in agentes) {
+    if (agentes[agente].contraseña == passw) {
+        contraseñaEncontrada = true;
+        usuario = agente;
+        break;
+    }
+}
+```
+
+<Info>
+Passwords are stored securely in Firebase and retrieved at runtime to validate administrator access.
+</Info>
+
+## User Roles
+
+The system supports multiple user types:
+
+<CardGroup cols={2}>
+  <Card title="Administrators" icon="user-shield">
+    Full access to schedule management, data export, and system configuration
+  </Card>
+  <Card title="Advisors" icon="user">
+    View-only access to personal schedules and shift information
+  </Card>
+  <Card title="Support Roles" icon="headset">
+    Special designations like "Apoyo Sura" with specific permissions
+  </Card>
+  <Card title="System Users" icon="gear">
+    Automated accounts for system operations and special events
+  </Card>
+</CardGroup>
+
+## Managing User Accounts
+
+### Adding New Users
+
+To add a new user to the system:
+
+1. Access the Firebase database
+2. Navigate to the `agentes` reference
+3. Add a new entry with username and password
+4. Configure appropriate permissions
+
+```javascript
+let agentesExcluidos = ["D", "DF", "AS"];
+for (let agente in agentes) {
+    if (!agentesExcluidos.includes(agente)) {
+        if (agentes[agente].contraseña == "") {
+            let contraseña = firebase.database().ref('agentes/' + agente);
+            contraseña.once('value').then(function (snapshot) {
+                agentes[agente].contraseña = snapshot.val();
+            });
+        }
+    }
+}
+```
+
+### User Display Format
+
+Usernames are stored with underscores but displayed with spaces for readability:
+
+```javascript
+// Convert for display
+nombreAsesorActual = nombreAsesorActual.replace(/_/g, " ");
+
+// Example: "Andrés_Felipe_Yepes_Tascón" → "Andrés Felipe Yepes Tascón"
+```
+
+## Activity Tracking
+
+The system maintains a comprehensive activity log for all user actions.
+
+### Change History
+
+All schedule modifications are tracked with:
+
+- Timestamp of the change
+- User who made the change
+- Before and after values
+- Affected cells/schedules
+
+```javascript
+const historialRef = db.ref('Historial').push();
+const historialPromise = historialRef.set({
+    timestamp: timestamp,
+    usuario: usuario,
+    cambios: cambiosParaGuardarEnHistorial
+});
+```
+
+<Warning>
+Only changes that modify existing data are logged to the history. Empty cells being saved don't generate history entries.
+</Warning>
+
+## Permission System
+
+### Write Access Control
+
+Schedule modifications require authentication:
+
+```javascript
+async function guardarCeldas() {
+    var passw = document.getElementById('pass').value;
+    var contraseñaEncontrada = false;
+    var usuario = "";
+
+    for (let agente in agentes) {
+        if (agentes[agente].contraseña == passw) {
+            contraseñaEncontrada = true;
+            usuario = agente;
+            break;
+        }
+    }
+
+    if (contraseñaEncontrada) {
+        // Proceed with save operation
+        await Promise.all(promesasGuardado);
+        limpiarCacheTimeline();
+        alert("Datos guardados");
+        location.reload();
+    } else {
+        alert("Contraseña incorrecta");
+    }
+}
+```
+
+### Special User Types
+
+Some users have special designations that affect system behavior:
+
+- **D** (Descanso): Day off marker
+- **DF** (Día de la familia): Family day marker
+- **AS** (Apoyo Sura): Support role designation
+
+## User Session Management
+
+### Current User Storage
+
+The system uses localStorage to maintain the current user context:
+
+```javascript
+var nombreAsesorActual = window.nombreAsesorActual || 
+                         localStorage.getItem("nombreAsesorActual");
+
+if (!nombreAsesorActual) {
+    throw new Error("No se encontró el nombre del asesor actual");
+}
+```
+
+### Session Persistence
+
+User sessions persist across page reloads through localStorage, ensuring continuity when viewing schedules and making changes.
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Password Security">
+    - Store passwords in Firebase with appropriate security rules
+    - Never hardcode passwords in client-side code
+    - Implement password expiration policies
+    - Use Firebase Authentication for enhanced security
+  </Accordion>
+  
+  <Accordion title="User Onboarding">
+    - Create user accounts with standardized naming (First_Last format)
+    - Assign appropriate roles immediately
+    - Document special permissions in the system
+    - Train users on their access levels
+  </Accordion>
+  
+  <Accordion title="Audit Trail">
+    - Review change history regularly
+    - Monitor for unauthorized access attempts
+    - Keep backup logs of all modifications
+    - Document administrative actions
+  </Accordion>
+</AccordionGroup>
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Shift Tracking" icon="clock" href="/guides/shift-tracking">
+    Learn about managing employee shifts and schedules
+  </Card>
+  <Card title="Data Export" icon="download" href="/guides/data-export">
+    Export user data and schedules in various formats
+  </Card>
+</CardGroup>

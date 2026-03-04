@@ -1,0 +1,393 @@
+---
+title: Templates
+description: Create, organize, and share templates with color-coded categories
+---
+
+## Overview
+
+The Templates module (Plantillas) is a powerful system for creating, managing, and sharing reusable message templates. It features real-time collaboration, color coding, favorites management, and intelligent caching for optimal performance.
+
+<Card title="User Guide" icon="book-open" href="/guides/creating-templates">
+  See the complete guide for step-by-step instructions on working with templates
+</Card>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Real-time Collaboration" icon="users">
+    Changes sync instantly across all users via Firebase
+  </Card>
+  <Card title="Color Organization" icon="palette">
+    Assign colors to templates for visual categorization
+  </Card>
+  <Card title="Smart Caching" icon="bolt">
+    5-minute cache reduces Firebase reads and improves performance
+  </Card>
+  <Card title="Favorites System" icon="star">
+    Quick access to frequently used templates
+  </Card>
+  <Card title="Search & Filter" icon="magnifying-glass">
+    Search by title or content with real-time filtering
+  </Card>
+  <Card title="Export to Excel" icon="file-excel">
+    Batch export templates for offline use
+  </Card>
+</CardGroup>
+
+## Template Structure
+
+Each template in the system has the following structure:
+
+```javascript
+{
+  titulo: "Template Title",
+  contenido: "<p>HTML content of the template</p>",
+  asesor: "Nombre_del_Creador",
+  timestamp: 1234567890,
+  color: "azul"  // Optional color code
+}
+```
+
+### Color System
+
+Templates support 8 predefined colors:
+
+```javascript
+const COLORES_DISPONIBLES = {
+    'azul': '#3b82f6',
+    'verde': '#10b981',
+    'rojo': '#ef4444',
+    'morado': '#a855f7',
+    'amarillo': '#f59e0b',
+    'rosa': '#ec4899',
+    'cyan': '#06b6d4',
+    'naranja': '#f97316'
+};
+```
+
+## Caching Strategy
+
+The Templates module implements a sophisticated caching system to optimize performance:
+
+### LocalStorage Cache
+
+```javascript
+let plantillasCache = JSON.parse(localStorage.getItem('plantillasCache')) || null;
+let favoritosCache = JSON.parse(localStorage.getItem('favoritosCache')) || null;
+let coloresCache = JSON.parse(localStorage.getItem('coloresPlantillas')) || {};
+let lastUpdate = localStorage.getItem('plantillasLastUpdate') || 0;
+
+const now = Date.now();
+const cacheValid = plantillasCache && favoritosCache && (now - lastUpdate < 300000); // 5 minutes
+
+if (cacheValid) {
+    renderizarPlantillas(plantillasCache, favoritosCache, asesorActual);
+    verificarCambiosEnSegundoPlano(asesorActual);
+} else {
+    cargarPlantillasCompleto(asesorActual, loadingScreen);
+}
+```
+
+### Background Verification
+
+Even when using cached data, the system checks for updates in the background:
+
+```javascript
+function verificarCambiosEnSegundoPlano(asesorActual) {
+    Promise.all([
+        firebase.database().ref('Plantillas').once('value'),
+        firebase.database().ref(`Preferencias/${asesorActual}/Favoritos`).once('value')
+    ]).then(([plantillasSnap, favSnap]) => {
+        const plantillasNuevas = plantillasSnap.val() || {};
+        const favoritosNuevos = favSnap.val() || {};
+        
+        // Compare and update if changes detected
+        if (JSON.stringify(plantillasNuevas) !== JSON.stringify(plantillasCache)) {
+            actualizarCache(plantillasNuevas, favoritosNuevos);
+            renderizarPlantillas(plantillasNuevas, favoritosNuevos, asesorActual);
+        }
+    });
+}
+```
+
+<Info>
+  The 5-minute cache significantly reduces Firebase read operations while ensuring data freshness through background synchronization.
+</Info>
+
+## Template Operations
+
+### Creating Templates
+
+<Steps>
+  <Step title="Open creation modal">
+    Click the **Nueva Plantilla** button to open the creation dialog.
+  </Step>
+  
+  <Step title="Enter template details">
+    Provide a unique title and HTML content. The system validates title uniqueness in real-time.
+    
+    ```javascript
+    tituloInput.addEventListener('input', function() {
+        const titulo = this.value.trim();
+        if (plantillasExistentes[titulo]) {
+            // Show error: title already exists
+            guardarBtn.disabled = true;
+        } else {
+            guardarBtn.disabled = false;
+        }
+    });
+    ```
+  </Step>
+  
+  <Step title="Assign color (optional)">
+    Select a color from the available palette to categorize your template.
+  </Step>
+  
+  <Step title="Save to Firebase">
+    Templates are saved with automatic timestamp and creator attribution.
+    
+    ```javascript
+    const plantillaData = {
+        titulo: titulo,
+        contenido: contenido,
+        asesor: asesorActual,
+        timestamp: Date.now(),
+        color: colorSeleccionado || null
+    };
+    
+    firebase.database().ref(`Plantillas/${titulo}`).set(plantillaData);
+    ```
+  </Step>
+</Steps>
+
+### Using Templates
+
+When you click a template, it's automatically copied to your clipboard with time-based greeting:
+
+```javascript
+function copiarPlantilla(contenido) {
+    const hora = new Date().getHours();
+    let saludo;
+    
+    if (hora >= 5 && hora < 12) {
+        saludo = "Buenos días";
+    } else if (hora >= 12 && hora < 19) {
+        saludo = "Buenas tardes";
+    } else {
+        saludo = "Buenas noches";
+    }
+    
+    const textoConSaludo = `${saludo}\n\n${contenido}`;
+    navigator.clipboard.writeText(textoConSaludo);
+    
+    // Optional: Auto-clear clipboard after timer
+    if (timerSwitch.checked) {
+        setTimeout(() => {
+            navigator.clipboard.writeText('');
+        }, 8000);
+    }
+}
+```
+
+## Favorites System
+
+The favorites feature allows quick access to frequently used templates:
+
+### Adding to Favorites
+
+```javascript
+function toggleFavorito(titulo, asesorActual) {
+    const favRef = firebase.database().ref(`Preferencias/${asesorActual}/Favoritos/${titulo}`);
+    
+    favRef.once('value').then(snapshot => {
+        if (snapshot.exists()) {
+            // Remove from favorites
+            favRef.remove();
+        } else {
+            // Add to favorites
+            favRef.set(true);
+        }
+    });
+}
+```
+
+### Favorites Display
+
+Favorites are displayed at the top of the template list:
+
+- **Star icon**: Filled for favorites, outlined for non-favorites
+- **Sort order**: Favorites appear first, then by timestamp
+- **User-specific**: Each user has their own favorites list
+
+<Tip>
+  Favorites sync across devices via Firebase, so your preferred templates are available wherever you log in.
+</Tip>
+
+## Search Functionality
+
+The search system supports both title and content searching:
+
+```javascript
+function buscarPlantillas() {
+    const query = searchInput.value.toLowerCase();
+    const plantillas = document.querySelectorAll('.plantilla-card');
+    
+    plantillas.forEach(card => {
+        const titulo = card.dataset.titulo.toLowerCase();
+        const contenido = card.dataset.contenido.toLowerCase();
+        
+        if (titulo.includes(query) || contenido.includes(query)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+```
+
+### Search Features
+
+- **Real-time filtering**: Results update as you type
+- **Multi-field search**: Searches both title and content
+- **Case-insensitive**: Matches regardless of capitalization
+- **Highlight matches**: Search terms are highlighted in results
+
+## Export Functionality
+
+Export all templates to Excel format for backup or offline use:
+
+```javascript
+function exportarTodasPlantillas() {
+    const plantillas = [];
+    
+    Object.entries(plantillasCache).forEach(([titulo, data]) => {
+        plantillas.push({
+            'Título': titulo,
+            'Contenido': data.contenido.replace(/<[^>]*>/g, ''), // Strip HTML
+            'Creador': data.asesor,
+            'Fecha': new Date(data.timestamp).toLocaleString(),
+            'Color': data.color || 'Sin color'
+        });
+    });
+    
+    // Use TableExport library or similar
+    exportToExcel(plantillas, 'plantillas.xlsx');
+}
+```
+
+## Real-time Collaboration
+
+The Templates module supports real-time updates across all connected users:
+
+### Firebase Listeners
+
+```javascript
+firebase.database().ref('Plantillas').on('child_added', snapshot => {
+    const titulo = snapshot.key;
+    const plantilla = snapshot.val();
+    agregarPlantillaDOM(titulo, plantilla);
+});
+
+firebase.database().ref('Plantillas').on('child_changed', snapshot => {
+    const titulo = snapshot.key;
+    const plantilla = snapshot.val();
+    actualizarPlantillaDOM(titulo, plantilla);
+});
+
+firebase.database().ref('Plantillas').on('child_removed', snapshot => {
+    const titulo = snapshot.key;
+    eliminarPlantillaDOM(titulo);
+});
+```
+
+### Conflict Resolution
+
+Last-write-wins strategy with timestamp tracking:
+
+- Each update includes a timestamp
+- Firebase atomic operations prevent race conditions
+- Users see a notification when templates are updated by others
+
+## Advanced Features
+
+### Current Duty Manager Display
+
+The system shows which user is currently on duty:
+
+```javascript
+firebase.database().ref('Almuerzo/Asesor').on('value', snapshot => {
+    const asesorAlmuerzo = snapshot.val();
+    if (asesorAlmuerzo) {
+        document.getElementById('asesorActual').textContent = asesorAlmuerzo;
+    }
+});
+```
+
+### Auto-clear Clipboard Timer
+
+Optional security feature to clear clipboard after copying:
+
+```javascript
+var timerSwitch = document.getElementById('timerSwitch');
+var timerPreference = localStorage.getItem('timerActive');
+
+if (timerPreference === 'true') {
+    timerSwitch.checked = true;
+}
+```
+
+## Performance Optimization
+
+### Cache Management
+
+<AccordionGroup>
+  <Accordion title="Cache expiration">
+    Templates cache expires after 5 minutes (300,000ms) to balance freshness and performance.
+  </Accordion>
+  
+  <Accordion title="Selective updates">
+    Only changed templates trigger re-renders, not the entire list.
+  </Accordion>
+  
+  <Accordion title="Debounced search">
+    Search input is debounced to prevent excessive filtering operations.
+  </Accordion>
+</AccordionGroup>
+
+### Firebase Optimization
+
+- **Offline mode toggle**: `db.goOffline()` and `db.goOnline()` for controlled sync
+- **Single read on load**: Initial load uses `.once()` instead of continuous listeners
+- **Selective listeners**: Only active templates have change listeners
+
+## Security Considerations
+
+<Warning>
+  Templates can contain HTML content. Ensure proper sanitization if displaying user-generated templates to prevent XSS attacks.
+</Warning>
+
+### Access Control
+
+- Only authenticated users can create/edit templates
+- User attribution tracks who created each template
+- Firebase security rules enforce read/write permissions
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Creating Templates Guide" icon="book" href="/guides/creating-templates">
+    Step-by-step guide with examples
+  </Card>
+  
+  <Card title="Caching Strategy" icon="database" href="/technical/caching-strategy">
+    Technical details on cache implementation
+  </Card>
+  
+  <Card title="Firebase Integration" icon="fire" href="/technical/firebase-integration">
+    How Firebase powers real-time features
+  </Card>
+  
+  <Card title="Data Export" icon="download" href="/guides/data-export">
+    Export templates and other data
+  </Card>
+</CardGroup>

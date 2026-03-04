@@ -1,0 +1,378 @@
+---
+title: 'Theme Customization'
+description: 'Learn how to customize themes, apply predefined themes, and create your own color schemes'
+icon: 'palette'
+---
+
+## Overview
+
+Playground includes a powerful theme system with 30 predefined themes and full customization capabilities. Users can select from beautifully crafted color palettes or create their own unique designs.
+
+## Predefined Themes
+
+The theme system loads themes from `temas.json`, which contains an array of theme objects. Each theme includes:
+
+<ResponseField name="nombre" type="string" required>
+  Display name of the theme
+</ResponseField>
+
+<ResponseField name="primario" type="string" required>
+  Primary color (hex format)
+</ResponseField>
+
+<ResponseField name="secundario" type="string" required>
+  Secondary color (hex format)
+</ResponseField>
+
+<ResponseField name="fondo" type="string" required>
+  Background color (hex format)
+</ResponseField>
+
+<ResponseField name="texto" type="string" required>
+  Text color (hex format)
+</ResponseField>
+
+<ResponseField name="textoFondoPrimario" type="string">
+  Optional text color for primary backgrounds
+</ResponseField>
+
+## Theme Gallery
+
+<Tabs>
+  <Tab title="Dark Themes">
+    ### Dark Mode Color Schemes
+    
+    <CardGroup cols={2}>
+      <Card title="Seda" icon="moon">
+        - **Primary**: `#e1c78f`
+        - **Secondary**: `#d4af37`
+        - **Background**: `#0f0f0f`
+        - **Text**: `#ffffff`
+        - **Text on Primary**: `#000000`
+      </Card>
+      
+      <Card title="Espresso" icon="coffee">
+        - **Primary**: `#d4a574`
+        - **Secondary**: `#8b6f47`
+        - **Background**: `#1a1410`
+        - **Text**: `#f5f5dc`
+      </Card>
+      
+      <Card title="Medianoche" icon="star">
+        - **Primary**: `#9b59b6`
+        - **Secondary**: `#8e44ad`
+        - **Background**: `#1a1a2e`
+        - **Text**: `#eaeaea`
+      </Card>
+      
+      <Card title="Gris Oscuro" icon="circle">
+        - **Primary**: `#b3b3b3`
+        - **Secondary**: `#808080`
+        - **Background**: `#1c1c1c`
+        - **Text**: `#f0f0f0`
+        - **Text on Primary**: `#000000`
+      </Card>
+    </CardGroup>
+  </Tab>
+  
+  <Tab title="Light Themes">
+    ### Light Mode Color Schemes
+    
+    <CardGroup cols={2}>
+      <Card title="Ámbar" icon="sun">
+        - **Primary**: `#e69500`
+        - **Secondary**: `#ff8c00`
+        - **Background**: `#f0f0f0`
+        - **Text**: `#000000`
+      </Card>
+      
+      <Card title="Cielo" icon="cloud">
+        - **Primary**: `#3498db`
+        - **Secondary**: `#2980b9`
+        - **Background**: `#ecf0f1`
+        - **Text**: `#2c3e50`
+      </Card>
+      
+      <Card title="Menta" icon="leaf">
+        - **Primary**: `#1abc9c`
+        - **Secondary**: `#16a085`
+        - **Background**: `#f4fffe`
+        - **Text**: `#0a3d3b`
+      </Card>
+      
+      <Card title="Lavanda" icon="flower">
+        - **Primary**: `#a29bfe`
+        - **Secondary**: `#6c5ce7`
+        - **Background**: `#f8f9fa`
+        - **Text**: `#2d3436`
+      </Card>
+    </CardGroup>
+  </Tab>
+  
+  <Tab title="Vibrant Themes">
+    ### Bold & Vibrant Color Schemes
+    
+    <CardGroup cols={2}>
+      <Card title="Neón" icon="bolt">
+        - **Primary**: `#00ff88`
+        - **Secondary**: `#00d9ff`
+        - **Background**: `#0a0e27`
+        - **Text**: `#C9C9C9`
+        - **Text on Primary**: `#000000`
+      </Card>
+      
+      <Card title="Galaxia" icon="stars">
+        - **Primary**: `#00a8ff`
+        - **Secondary**: `#007fff`
+        - **Background**: `#130f40`
+        - **Text**: `#e6e8fa`
+        - **Text on Primary**: `#000000`
+      </Card>
+      
+      <Card title="Amapola" icon="fire">
+        - **Primary**: `#ff5733`
+        - **Secondary**: `#c70039`
+        - **Background**: `#2d2d2d`
+        - **Text**: `#f0f0f0`
+        - **Text on Primary**: `#000000`
+      </Card>
+      
+      <Card title="Coral" icon="water">
+        - **Primary**: `#e74c3c`
+        - **Secondary**: `#c0392b`
+        - **Background**: `#ffeaa7`
+        - **Text**: `#34495e`
+      </Card>
+    </CardGroup>
+  </Tab>
+</Tabs>
+
+## Loading Themes
+
+Themes are loaded asynchronously from the JSON file:
+
+```javascript
+let temas = [];
+
+async function cargarTemas() {
+  try {
+    const respuesta = await fetch('temas.json');
+    if (!respuesta.ok) throw new Error('No se pudo cargar temas.json');
+    temas = await respuesta.json();
+    crearBotonesTemas();
+  } catch (error) {
+    console.error('Error al cargar los temas:', error);
+  }
+}
+```
+
+## Theme Button Visualization
+
+Each theme is displayed as a circular button with a conic gradient showing all its colors:
+
+```javascript
+function crearBotonesTemas() {
+  const container = document.getElementById('temasButtons');
+  
+  temas.forEach((tema) => {
+    const boton = document.createElement('button');
+    boton.className = 'tema-boton';
+    
+    // Create visual representation with conic gradient
+    if (tema.textoFondoPrimario) {
+      // 5-color split when textoFondoPrimario exists
+      boton.style.background = `conic-gradient(
+        from 0deg,
+        ${tema.primario} 0deg 90deg,
+        ${tema.secundario} 90deg 180deg,
+        ${tema.fondo} 180deg 270deg,
+        ${tema.texto} 270deg 315deg,
+        ${tema.textoFondoPrimario} 315deg 360deg
+      )`;
+    } else {
+      // 4-color equal split
+      boton.style.background = `conic-gradient(
+        from 0deg,
+        ${tema.primario} 0deg 90deg,
+        ${tema.secundario} 90deg 180deg,
+        ${tema.fondo} 180deg 270deg,
+        ${tema.texto} 270deg 360deg
+      )`;
+    }
+    
+    boton.addEventListener('click', () => aplicarTema(tema));
+  });
+}
+```
+
+<Info>
+The conic gradient provides a quick visual preview of all theme colors in a single circular button.
+</Info>
+
+## Applying a Theme
+
+When a user clicks a theme button:
+
+1. Color inputs are populated with theme values
+2. Input events are dispatched to trigger live preview
+3. The textoFondoPrimario option is configured if present
+
+```javascript
+function aplicarTema(tema) {
+  const ids = ['ColorPrimario', 'ColorSecundario', 'ColorFondo', 'ColorTexto'];
+  const valores = [tema.primario, tema.secundario, tema.fondo, tema.texto];
+  
+  ids.forEach((id, i) => {
+    const input = document.getElementById(id);
+    if (input) {
+      input.value = valores[i];
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  });
+  
+  // Handle optional textoFondoPrimario
+  const checkboxColorTextoFondoPrimario = 
+    document.getElementById('activarColorTextoFondoPrimario');
+  const inputColorTextoFondoPrimario = 
+    document.getElementById('ColorTextoFondoPrimario');
+  
+  if (tema.textoFondoPrimario) {
+    checkboxColorTextoFondoPrimario.checked = true;
+    inputColorTextoFondoPrimario.value = tema.textoFondoPrimario;
+    inputColorTextoFondoPrimario.dispatchEvent(new Event('input'));
+  } else {
+    checkboxColorTextoFondoPrimario.checked = false;
+  }
+}
+```
+
+## Custom Color Customization
+
+Users can override theme colors or create completely custom themes:
+
+### Color Pickers
+
+<Steps>
+  <Step title="Select Primary Color">
+    Choose your main brand color using the color picker for `ColorPrimario`.
+  </Step>
+  
+  <Step title="Select Secondary Color">
+    Pick an accent color with `ColorSecundario` to complement your primary.
+  </Step>
+  
+  <Step title="Choose Background">
+    Set the base background color with `ColorFondo`.
+  </Step>
+  
+  <Step title="Define Text Color">
+    Select the main text color with `ColorTexto` for optimal contrast.
+  </Step>
+  
+  <Step title="Optional: Text on Primary">
+    Enable and set `ColorTextoFondoPrimario` if you need different text color on primary backgrounds.
+  </Step>
+</Steps>
+
+### Live Preview
+
+Color changes are previewed in real-time as you adjust the color pickers:
+
+```javascript
+previsualizarCambios() {
+  const root = document.documentElement;
+  root.style.setProperty('--color-primario', inputPrimario.value);
+  root.style.setProperty('--color-secundario', inputSecundario.value);
+  root.style.setProperty('--color-fondo', inputColorFondo.value);
+  root.style.setProperty('--color-texto', inputColorTexto.value);
+  
+  if (checkboxColorTextoFondoPrimario.checked) {
+    root.style.setProperty('--color-texto-fondo-primario', 
+      inputColorTextoFondoPrimario.value);
+  }
+}
+```
+
+<Tip>
+All changes are previewed instantly but won't be saved until you click the "Guardar Configuración" button.
+</Tip>
+
+## Typography Selection
+
+Playground offers 10 font families:
+
+<CardGroup cols={2}>
+  <Card title="Google Fonts">
+    - **Nunito** (default)
+    - Open Sans
+  </Card>
+  
+  <Card title="Web-Safe Fonts">
+    - Arial
+    - Verdana
+    - Georgia
+    - Times New Roman
+    - Tahoma
+    - Trebuchet MS
+  </Card>
+  
+  <Card title="Monospace Fonts">
+    - Courier New
+    - Consolas
+  </Card>
+</CardGroup>
+
+```javascript
+const fuentesDisponibles = [
+  { nombre: 'Nunito', valor: "'Nunito', sans-serif" },
+  { nombre: 'Open Sans', valor: "'Open Sans', sans-serif" },
+  { nombre: 'Arial', valor: 'Arial, sans-serif' },
+  { nombre: 'Verdana', valor: 'Verdana, Geneva, sans-serif' },
+  { nombre: 'Georgia', valor: 'Georgia, serif' },
+  { nombre: 'Times New Roman', valor: '"Times New Roman", Times, serif' },
+  { nombre: 'Tahoma', valor: 'Tahoma, Geneva, sans-serif' },
+  { nombre: 'Trebuchet MS', valor: '"Trebuchet MS", Helvetica, sans-serif' },
+  { nombre: 'Courier New', valor: '"Courier New", Courier, monospace' },
+  { nombre: 'Consolas', valor: 'Consolas, "Courier New", monospace' }
+];
+```
+
+## Complete Theme List
+
+Here are all 30 available themes:
+
+1. **Seda** - Elegant gold on deep black
+2. **Espresso** - Warm coffee tones
+3. **Medianoche** - Purple midnight theme
+4. **Gris Oscuro** - Sophisticated grayscale
+5. **Índigo** - Deep indigo blue
+6. **Amapola** - Bold red and gray
+7. **Marte** - Martian red atmosphere
+8. **Neón** - Cyberpunk neon lights
+9. **Galaxia** - Space-inspired blues
+10. **Bosque** - Forest greens
+11. **Carbón** - Industrial charcoal
+12. **Atardecer** - Sunset oranges
+13. **Girasol** - Bright sunflower yellow
+14. **Océano** - Deep ocean blues
+15. **Militar** - Military slate gray
+16. **Ámbar** - Classic amber (default)
+17. **Cielo** - Sky blue
+18. **Glaciar** - Icy cyan
+19. **Menta** - Fresh mint green
+20. **Café** - Coffee and cream
+21. **Esmeralda** - Emerald green
+22. **Lavanda** - Soft lavender
+23. **Rubí** - Rich ruby red
+24. **Durazno** - Peachy pastels
+25. **Limón** - Lemon yellow
+26. **Arena** - Sandy beige
+27. **Aura** - Mystical purple-blue
+28. **Coral** - Coral and cream
+29. **Cereza** - Cherry red
+30. **Rosa** - Pink blossoms
+
+<Card title="Related Pages" icon="link">
+  - [Configuration Settings](/configuration/settings)
+  - [Preferences Management](/configuration/preferences)
+</Card>

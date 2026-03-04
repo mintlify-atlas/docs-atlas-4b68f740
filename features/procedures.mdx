@@ -1,0 +1,539 @@
+---
+title: Procedures
+description: Document your processes with a rich text editor and export capabilities
+---
+
+## Overview
+
+The Procedures module (Procedimientos) provides a comprehensive documentation system with a rich text editor, internal linking, search functionality, and collaboration features. It's designed for creating and maintaining internal process documentation.
+
+<Card title="User Guide" icon="book-open" href="/guides/working-with-procedures">
+  Complete guide for creating and managing procedures
+</Card>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Rich Text Editor" icon="text">
+    Quill editor with formatting, tables, and media support
+  </Card>
+  <Card title="Advanced Search" icon="magnifying-glass">
+    Search by title and content with match highlighting
+  </Card>
+  <Card title="Internal Linking" icon="link">
+    Cross-reference between related procedures
+  </Card>
+  <Card title="Real-time Sync" icon="arrows-rotate">
+    Changes sync instantly via Firebase
+  </Card>
+  <Card title="Table Support" icon="table">
+    Better-table plugin for complex data structures
+  </Card>
+  <Card title="Permission Control" icon="lock">
+    Role-based editing and deletion permissions
+  </Card>
+</CardGroup>
+
+## Rich Text Editor
+
+The Procedures module uses **Quill** as its rich text editor with the **better-table** extension:
+
+```html
+<!-- Quill CSS -->
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<link href="https://unpkg.com/quill-better-table@1.2.10/dist/quill-better-table.css" rel="stylesheet">
+
+<!-- Quill JS -->
+<script src="https://cdn.quilljs.com/1.3.7/quill.js"></script>
+```
+
+### Editor Configuration
+
+```javascript
+var quill = new Quill('#editor', {
+    theme: 'snow',
+    modules: {
+        toolbar: [
+            [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            ['blockquote', 'code-block'],
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+            [{ 'script': 'sub'}, { 'script': 'super' }],
+            [{ 'indent': '-1'}, { 'indent': '+1' }],
+            [{ 'direction': 'rtl' }],
+            [{ 'size': ['small', false, 'large', 'huge'] }],
+            [{ 'color': [] }, { 'background': [] }],
+            [{ 'font': [] }],
+            [{ 'align': [] }],
+            ['link', 'image', 'video'],
+            ['clean'],
+            ['table']
+        ],
+        table: true,
+        'better-table': {
+            operationMenu: {
+                items: {
+                    unmergeCells: {
+                        text: 'Separar celdas'
+                    },
+                    insertColumnRight: {
+                        text: 'Insertar columna a la derecha'
+                    },
+                    insertColumnLeft: {
+                        text: 'Insertar columna a la izquierda'
+                    },
+                    insertRowUp: {
+                        text: 'Insertar fila arriba'
+                    },
+                    insertRowDown: {
+                        text: 'Insertar fila abajo'
+                    },
+                    removeRow: {
+                        text: 'Eliminar fila'
+                    },
+                    removeColumn: {
+                        text: 'Eliminar columna'
+                    },
+                    removeTable: {
+                        text: 'Eliminar tabla'
+                    }
+                }
+            }
+        }
+    }
+});
+```
+
+### Supported Formatting
+
+<Tabs>
+  <Tab title="Text Formatting">
+    - **Bold**, *Italic*, <u>Underline</u>, ~~Strikethrough~~
+    - Headers (H1-H6)
+    - Font size and family
+    - Text color and background
+    - Subscript and superscript
+  </Tab>
+  
+  <Tab title="Structure">
+    - Ordered and unordered lists
+    - Blockquotes
+    - Code blocks
+    - Indentation
+    - Text alignment
+    - Right-to-left text direction
+  </Tab>
+  
+  <Tab title="Media & Links">
+    - Hyperlinks
+    - Images (upload or URL)
+    - Embedded videos
+    - Tables with merge/split cells
+  </Tab>
+</Tabs>
+
+## Procedure Structure
+
+Each procedure document has the following data structure:
+
+```javascript
+{
+  titulo: "Procedure Title",
+  contenido: "<h1>Rich HTML Content</h1><p>...</p>",
+  enlaces: {
+    "Related Procedure 1": true,
+    "Related Procedure 2": true
+  },
+  autor: "Nombre_del_Creador",
+  timestamp: 1234567890,
+  ultimaModificacion: 1234567900
+}
+```
+
+## Search Functionality
+
+The search system provides comprehensive filtering:
+
+### Title Search
+
+```javascript
+function buscarPorTitulo(query) {
+    const procedimientos = document.querySelectorAll('.procedimiento-item');
+    const normalizedQuery = query.toLowerCase();
+    
+    procedimientos.forEach(item => {
+        const titulo = item.dataset.titulo.toLowerCase();
+        if (titulo.includes(normalizedQuery)) {
+            item.style.display = 'block';
+            highlightMatch(item, query);
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+```
+
+### Content Search
+
+Search within procedure content for specific terms:
+
+```javascript
+function buscarEnContenido(query) {
+    const query_lower = query.toLowerCase();
+    
+    firebase.database().ref('procedimientos').once('value', snapshot => {
+        const resultados = [];
+        
+        snapshot.forEach(child => {
+            const proc = child.val();
+            const contenidoTexto = stripHTML(proc.contenido).toLowerCase();
+            
+            if (contenidoTexto.includes(query_lower)) {
+                resultados.push({
+                    titulo: proc.titulo,
+                    coincidencias: countMatches(contenidoTexto, query_lower)
+                });
+            }
+        });
+        
+        mostrarResultadosBusqueda(resultados);
+    });
+}
+
+function stripHTML(html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+}
+```
+
+### Search Highlighting
+
+Matched terms are highlighted in search results:
+
+```javascript
+function highlightMatch(element, query) {
+    const texto = element.textContent;
+    const regex = new RegExp(`(${query})`, 'gi');
+    const highlighted = texto.replace(regex, '<mark>$1</mark>');
+    element.innerHTML = highlighted;
+}
+```
+
+<Info>
+  Search is case-insensitive and supports partial matches for flexible discovery.
+</Info>
+
+## Internal Linking
+
+Procedures can reference other related procedures:
+
+### Adding Links
+
+<Steps>
+  <Step title="Access link manager">
+    While editing a procedure, click the **Enlaces relacionados** (Related Links) button.
+  </Step>
+  
+  <Step title="Select procedures">
+    Choose from a list of available procedures to link.
+    
+    ```javascript
+    function cargarProcedimientosDisponibles() {
+        firebase.database().ref('procedimientos').once('value', snapshot => {
+            const select = document.getElementById('selectProcedimiento');
+            
+            snapshot.forEach(child => {
+                const titulo = child.key;
+                if (titulo !== procedimientoActual) {
+                    const option = document.createElement('option');
+                    option.value = titulo;
+                    option.textContent = titulo;
+                    select.appendChild(option);
+                }
+            });
+        });
+    }
+    ```
+  </Step>
+  
+  <Step title="Save links">
+    Links are saved to the procedure's `enlaces` object in Firebase.
+    
+    ```javascript
+    function agregarEnlace(procedimientoOrigen, procedimientoDestino) {
+        firebase.database()
+            .ref(`procedimientos/${procedimientoOrigen}/enlaces/${procedimientoDestino}`)
+            .set(true);
+    }
+    ```
+  </Step>
+</Steps>
+
+### Viewing Links
+
+Related procedures appear as clickable links below the main content:
+
+```javascript
+function mostrarEnlaces(enlaces) {
+    const container = document.getElementById('enlacesContainer');
+    container.innerHTML = '<h3>Procedimientos relacionados:</h3>';
+    
+    Object.keys(enlaces || {}).forEach(enlace => {
+        const link = document.createElement('a');
+        link.href = '#';
+        link.textContent = enlace;
+        link.onclick = () => cargarProcedimiento(enlace);
+        
+        container.appendChild(link);
+    });
+}
+```
+
+## CRUD Operations
+
+### Creating Procedures
+
+```javascript
+function crearProcedimiento(titulo, contenido, autor) {
+    const procedimientoData = {
+        titulo: titulo,
+        contenido: contenido,
+        autor: autor,
+        timestamp: Date.now(),
+        ultimaModificacion: Date.now(),
+        enlaces: {}
+    };
+    
+    return firebase.database()
+        .ref(`procedimientos/${titulo}`)
+        .set(procedimientoData);
+}
+```
+
+### Reading Procedures
+
+```javascript
+function cargarProcedimiento(titulo) {
+    firebase.database().ref(`procedimientos/${titulo}`).once('value', snapshot => {
+        const proc = snapshot.val();
+        
+        if (proc) {
+            document.getElementById('titulo').textContent = proc.titulo;
+            quill.root.innerHTML = proc.contenido;
+            mostrarEnlaces(proc.enlaces);
+            mostrarMetadatos(proc.autor, proc.timestamp, proc.ultimaModificacion);
+        }
+    });
+}
+```
+
+### Updating Procedures
+
+```javascript
+function actualizarProcedimiento(titulo, nuevoContenido) {
+    return firebase.database()
+        .ref(`procedimientos/${titulo}`)
+        .update({
+            contenido: nuevoContenido,
+            ultimaModificacion: Date.now()
+        });
+}
+```
+
+### Deleting Procedures
+
+```javascript
+function eliminarProcedimiento(titulo, usuarioActual) {
+    // Check permissions
+    if (!tienePermisoEliminacion(usuarioActual)) {
+        alert('No tienes permisos para eliminar procedimientos');
+        return;
+    }
+    
+    if (confirm(`¿Estás seguro de eliminar "${titulo}"?`)) {
+        firebase.database()
+            .ref(`procedimientos/${titulo}`)
+            .remove()
+            .then(() => {
+                alert('Procedimiento eliminado exitosamente');
+                listarProcedimientos();
+            })
+            .catch(error => {
+                console.error('Error al eliminar:', error);
+            });
+    }
+}
+```
+
+<Warning>
+  Deletion is permanent and cannot be undone. Always confirm before deleting procedures.
+</Warning>
+
+## Permission System
+
+The module implements role-based access control:
+
+```javascript
+const PERMISOS = {
+    'Andrés_Felipe_Yepes_Tascón': {
+        crear: true,
+        editar: true,
+        eliminar: true
+    },
+    'default': {
+        crear: true,
+        editar: true,
+        eliminar: false
+    }
+};
+
+function tienePermiso(usuario, accion) {
+    const permisos = PERMISOS[usuario] || PERMISOS['default'];
+    return permisos[accion] || false;
+}
+```
+
+### Permission Levels
+
+<AccordionGroup>
+  <Accordion title="Administrator">
+    Full access to create, edit, and delete all procedures.
+  </Accordion>
+  
+  <Accordion title="Editor">
+    Can create and edit procedures, but cannot delete them.
+  </Accordion>
+  
+  <Accordion title="Viewer">
+    Read-only access to view procedures and search content.
+  </Accordion>
+</AccordionGroup>
+
+## Real-time Collaboration
+
+Multiple users can work simultaneously with automatic updates:
+
+```javascript
+// Listen for new procedures
+firebase.database().ref('procedimientos').on('child_added', snapshot => {
+    agregarProcedimientoLista(snapshot.key, snapshot.val());
+});
+
+// Listen for updates
+firebase.database().ref('procedimientos').on('child_changed', snapshot => {
+    actualizarProcedimientoLista(snapshot.key, snapshot.val());
+});
+
+// Listen for deletions
+firebase.database().ref('procedimientos').on('child_removed', snapshot => {
+    eliminarProcedimientoLista(snapshot.key);
+});
+```
+
+## Export Capabilities
+
+Export procedures to various formats:
+
+### HTML Export
+
+```javascript
+function exportarHTML(titulo, contenido) {
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>${titulo}</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    </style>
+</head>
+<body>
+    <h1>${titulo}</h1>
+    ${contenido}
+</body>
+</html>
+    `;
+    
+    downloadFile(`${titulo}.html`, html, 'text/html');
+}
+```
+
+### PDF Export
+
+Use the browser's print functionality to export as PDF:
+
+```javascript
+function exportarPDF() {
+    window.print();
+}
+```
+
+### Plain Text Export
+
+```javascript
+function exportarTexto(titulo, contenido) {
+    const texto = stripHTML(contenido);
+    downloadFile(`${titulo}.txt`, texto, 'text/plain');
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Descriptive Titles" icon="heading">
+    Use clear, descriptive titles that indicate the procedure's purpose
+  </Card>
+  
+  <Card title="Consistent Structure" icon="list">
+    Maintain consistent formatting across all procedures
+  </Card>
+  
+  <Card title="Regular Updates" icon="clock">
+    Keep procedures current by reviewing and updating regularly
+  </Card>
+  
+  <Card title="Cross-Reference" icon="link">
+    Link related procedures to create a knowledge network
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Editor not loading">
+    Ensure Quill CDN scripts are loaded. Check browser console for errors. Verify internet connection.
+  </Accordion>
+  
+  <Accordion title="Changes not saving">
+    Check Firebase connection status. Verify write permissions. Ensure authentication is active.
+  </Accordion>
+  
+  <Accordion title="Tables not working">
+    Confirm better-table plugin is loaded. Check that table module is enabled in Quill config.
+  </Accordion>
+  
+  <Accordion title="Search not finding results">
+    Verify search query. Check that procedures contain searchable content. Try title-only search.
+  </Accordion>
+</AccordionGroup>
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Working with Procedures" icon="book" href="/guides/working-with-procedures">
+    Complete user guide with examples
+  </Card>
+  
+  <Card title="Firebase Integration" icon="fire" href="/technical/firebase-integration">
+    How Firebase powers real-time updates
+  </Card>
+  
+  <Card title="User Management" icon="users" href="/guides/user-management">
+    Manage permissions and access control
+  </Card>
+  
+  <Card title="Data Export" icon="download" href="/guides/data-export">
+    Export procedures to various formats
+  </Card>
+</CardGroup>
