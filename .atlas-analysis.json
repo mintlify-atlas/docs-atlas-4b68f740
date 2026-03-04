@@ -1,0 +1,116 @@
+{
+  "projectType": "saas",
+  "projectName": "Playground",
+  "projectDescription": "A comprehensive productivity and business management web application with tools for scheduling, templates, calculations, and document management.",
+  "theme": "almond",
+  "primaryColor": "#FFA500",
+  "lightColor": "#FFB733",
+  "darkColor": "#CC8400",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "introduction",
+              "getting-started",
+              "authentication"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/calculator",
+              "features/tools",
+              "features/templates",
+              "features/procedures",
+              "features/schedules",
+              "features/music-player"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/settings",
+              "configuration/themes",
+              "configuration/preferences"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "User Guides",
+            "pages": [
+              "guides/managing-schedules",
+              "guides/creating-templates",
+              "guides/using-calculator",
+              "guides/working-with-procedures"
+            ]
+          },
+          {
+            "group": "Administration",
+            "pages": [
+              "guides/user-management",
+              "guides/shift-tracking",
+              "guides/data-export"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Technical",
+        "groups": [
+          {
+            "group": "Architecture",
+            "pages": [
+              "technical/firebase-integration",
+              "technical/caching-strategy",
+              "technical/data-structure"
+            ]
+          },
+          {
+            "group": "Development",
+            "pages": [
+              "technical/local-setup",
+              "technical/deployment",
+              "technical/dependencies"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Firebase Authentication & Real-time Database",
+    "Grade Calculator with Multiple Evaluation Periods",
+    "Template Management System with Color Coding",
+    "Rich Text Editor for Procedures Documentation",
+    "Advanced Schedule Management for Stop Jeans Stores",
+    "Customizable Theme System with Multiple Color Schemes",
+    "Shift Tracking and Payment Management",
+    "Document Storage and Viewer Integration",
+    "Music Player with Playlist Support",
+    "Discount and Financial Calculators",
+    "Data Export to CSV and ICS Formats",
+    "Real-time Notifications System"
+  ],
+  "publicApiSurface": [
+    "Firebase Configuration (firebaseConfig)",
+    "Database Reference Wrapper (db.ref)",
+    "Authentication (firebase.auth())",
+    "Storage Management (firebase.storage())",
+    "Theme System (temas.json)",
+    "Local Storage Preferences API",
+    "Cache Management (localStorage)",
+    "Color Customization API",
+    "Template CRUD Operations",
+    "Schedule Management Functions",
+    "Export Functions (ICS, CSV)",
+    "Notification System"
+  ]
+}
